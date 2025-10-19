@@ -173,7 +173,7 @@ function analyzeRegimePerformance(
   neutral: RegimePerformance;
 } {
   const regimes: MarketRegime[] = ["risk-on", "risk-off", "neutral"];
-  const performances: Record<MarketRegime, RegimePerformance> = {
+  const performances: Record<string, RegimePerformance> = {
     "risk-on": {
       regime: "risk-on",
       avgReturn: 0,
@@ -225,7 +225,11 @@ function analyzeRegimePerformance(
     };
   }
 
-  return performances;
+  return {
+    riskOn: performances["risk-on"],
+    riskOff: performances["risk-off"],
+    neutral: performances.neutral,
+  };
 }
 
 /**
