@@ -27,10 +27,11 @@ const CustomTooltip = ({
     name: string;
     value: number | null;
     color: string;
+    payload?: Record<string, any>;
   }>;
 }) => {
-  if (active && payload && payload.length) {
-    const date = payload[0].payload?.date;
+  if (active && payload && payload.length && payload[0].payload) {
+    const date = payload[0].payload.date;
     return (
       <div className="bg-slate-900 border border-slate-700 rounded-lg p-3 shadow-lg">
         <p className="text-white font-semibold text-sm">{date}</p>
