@@ -140,8 +140,9 @@ export default function RegimeTable({ analysis, ticker }: RegimeTableProps) {
             </tr>
           </thead>
           <tbody>
-            {["risk-on", "risk-off", "neutral"].map((regime) => {
-              const perf = historicalPerformance[regime as MarketRegime];
+            {(["risk-on", "risk-off", "neutral"] as const).map((regime) => {
+              const regimeKey = regime === "risk-on" ? "riskOn" : regime === "risk-off" ? "riskOff" : "neutral";
+              const perf = historicalPerformance[regimeKey as keyof typeof historicalPerformance];
               const isCurrentRegime = regime === currentRegime;
               const color = regimeColors[regime as MarketRegime];
 
