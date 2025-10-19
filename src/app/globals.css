@@ -1,0 +1,197 @@
+@import "tailwindcss";
+
+:root {
+  /* Light mode - Clean and minimal */
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --muted-bg: #f8fafc;
+  --border: #e2e8f0;
+  --primary: #0ea5e9;
+  --primary-hover: #0284c7;
+  --secondary: #64748b;
+  --secondary-light: #cbd5e1;
+  --accent: #8b5cf6;
+  --destructive: #ef4444;
+  --success: #22c55e;
+  --warning: #f59e0b;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  /* Extended color palette */
+  --color-slate-50: #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1e293b;
+  --color-slate-900: #0f172a;
+
+  --color-blue-50: #f0f9ff;
+  --color-blue-100: #e0f2fe;
+  --color-blue-500: #0ea5e9;
+  --color-blue-600: #0284c7;
+
+  --color-green-50: #f0fdf4;
+  --color-green-500: #22c55e;
+
+  --color-red-50: #fef2f2;
+  --color-red-500: #ef4444;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Dark mode - Sophisticated and clear */
+    --background: #0f172a;
+    --foreground: #f1f5f9;
+    --muted-bg: #1e293b;
+    --border: #334155;
+    --primary: #0ea5e9;
+    --primary-hover: #06b6d4;
+    --secondary: #cbd5e1;
+    --secondary-light: #64748b;
+    --accent: #a78bfa;
+    --destructive: #f87171;
+    --success: #4ade80;
+    --warning: #fbbf24;
+  }
+}
+
+* {
+  @apply border-slate-200 dark:border-slate-700;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Text utilities */
+.text-muted { color: rgb(var(--color-slate-600) / 1); }
+@media (prefers-color-scheme: dark) { .text-muted { color: rgb(var(--color-slate-400) / 1); } }
+
+.text-label { font-size: 0.875rem; font-weight: 500; color: rgb(55 65 81); }
+@media (prefers-color-scheme: dark) { .text-label { color: rgb(209 213 219); } }
+
+/* Input styles */
+.input-base {
+  padding-left: 1rem;
+  padding-right: 1rem;
+  padding-top: 0.625rem;
+  padding-bottom: 0.625rem;
+  border-radius: 0.5rem;
+  border-width: 1px;
+  border-color: rgb(203 213 225);
+  background-color: white;
+  color: rgb(15 23 42);
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.input-base::placeholder { color: rgb(148 163 184); }
+.input-base:focus { outline: 2px solid transparent; outline-offset: 2px; ring: 2px rgb(3 102 214); }
+
+@media (prefers-color-scheme: dark) {
+  .input-base {
+    border-color: rgb(71 85 105);
+    background-color: rgb(30 41 59);
+    color: white;
+  }
+  .input-base::placeholder { color: rgb(100 116 139); }
+}
+
+/* Button styles */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  padding-top: 0.625rem;
+  padding-bottom: 0.625rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  background-color: rgb(59 130 246);
+  color: white;
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.btn-primary:hover { background-color: rgb(37 99 235); }
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  padding-top: 0.625rem;
+  padding-bottom: 0.625rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  background-color: rgb(226 232 240);
+  color: rgb(15 23 42);
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.btn-secondary:hover { background-color: rgb(203 213 225); }
+
+@media (prefers-color-scheme: dark) {
+  .btn-secondary {
+    background-color: rgb(51 65 85);
+    color: white;
+  }
+  .btn-secondary:hover { background-color: rgb(71 85 105); }
+}
+
+/* Card styles */
+.card {
+  background-color: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  border-width: 1px;
+  border-color: rgb(226 232 240);
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+@media (prefers-color-scheme: dark) {
+  .card {
+    background-color: rgb(30 41 59);
+    border-color: rgb(51 65 85);
+  }
+}
+
+.card-hover {
+  cursor: pointer;
+}
+
+.card-hover:hover {
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  border-color: rgb(203 213 225);
+}
+
+@media (prefers-color-scheme: dark) {
+  .card-hover:hover {
+    border-color: rgb(71 85 105);
+  }
+}

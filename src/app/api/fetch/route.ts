@@ -1,0 +1,123 @@
+import { NextRequest, NextResponse } from "next/server";
+import {
+  getDailyTimeSeries,
+  getIntradayTimeSeries,
+  getGlobalQuote,
+  generateMockFundamentals,
+} from "@/lib/alphaVantage";
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { ticker, horizon, startDate, endDate } = body;
+
+    if (!ticker) {
+      return NextResponse.json(
+        { error: "Ticker is required" },
+        { status: 400 }
+      );
+    }
+
+    const tickerSymbol = ticker.toUpperCase();
+
+    // Fetch data based on horizon
+    let priceHistory;
+    let currentQuote;
+
+    try {
+      console.log(`[FETCH API] Requesting data for ${tickerSymbol} (${horizon})`);
+      console.log(`[FETCH API] Alpha Vantage API Key: ${process.env.ALPHA_VANTAGE_API_KEY ? "SET" : "NOT SET"}`);
+
+      // Get current quote
+      console.log(`[FETCH API] Getting global quote...`);
+      currentQuote = await getGlobalQuote(tickerSymbol);
+      console.log(`[FETCH API] Quote received:`, currentQuote);
+
+      // Fetch appropriate time series based on horizon
+      if (horizon === "Intraday") {
+        console.log(`[FETCH API] Fetching intraday data...`);
+        priceHistory = await getIntradayTimeSeries(tickerSymbol);
+      } else if (horizon === "Custom" && startDate && endDate) {
+        // Custom date range
+        console.log(`[FETCH API] Fetching daily data for custom range (${startDate} to ${endDate})...`);
+        priceHistory = await getDailyTimeSeries(tickerSymbol);
+
+        // Filter to the custom date range
+        priceHistory = priceHistory.filter(
+          (p) => p.date >= startDate && p.date <= endDate
+        );
+        console.log(`[FETCH API] Filtered to ${priceHistory.length} points in custom range`);
+      } else {
+        // 1-Week and Long-Term both use daily data
+        console.log(`[FETCH API] Fetching daily data...`);
+        priceHistory = await getDailyTimeSeries(tickerSymbol);
+
+        // Limit to appropriate number of days
+        // Important: Keep enough data for SMA50 to calculate (need at least 50 points)
+        if (horizon === "1-Week") {
+          priceHistory = priceHistory.slice(0, 60); // ~3 months for context
+        } else {
+          priceHistory = priceHistory.slice(0, 250); // Roughly 1 year of data
+        }
+      }
+
+      console.log(`[FETCH API] Received ${priceHistory.length} price points`);
+
+      // Reverse to get oldest first for the chart
+      priceHistory = priceHistory.reverse();
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+
+      console.error(`[FETCH API] Error for ${tickerSymbol}:`, errorMessage);
+      console.error(`[FETCH API] Full error:`, error);
+
+      // If it's a rate limit error, return 429
+      if (errorMessage.includes("rate limit")) {
+        console.warn(`[FETCH API] Rate limit hit`);
+        return NextResponse.json(
+          {
+            error: "Alpha Vantage API rate limit exceeded. Please try again in a moment.",
+          },
+          { status: 429 }
+        );
+      }
+
+      console.warn(`[FETCH API] Falling back to mock data`);
+      // Fall back to mock data on error
+      priceHistory = [
+        { date: "2025-10-11", close: 175.2 },
+        { date: "2025-10-12", close: 176.8 },
+        { date: "2025-10-13", close: 175.5 },
+        { date: "2025-10-14", close: 177.2 },
+        { date: "2025-10-15", close: 178.5 },
+        { date: "2025-10-16", close: 176.9 },
+        { date: "2025-10-17", close: 179.3 },
+      ];
+      currentQuote = {
+        price: 179.3,
+        symbol: tickerSymbol,
+        volume: 50000000,
+        changePercent: 2.3,
+      };
+    }
+
+    const data = {
+      ticker: tickerSymbol,
+      price: currentQuote?.price || 0,
+      fundamentals: generateMockFundamentals(tickerSymbol),
+      priceHistory: priceHistory.map((p) => ({
+        date: p.date,
+        close: p.close,
+      })),
+    };
+
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error("Error in /api/fetch:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
