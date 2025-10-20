@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { analyzeCorrelations, generateMockMacroData } from "@/lib/macro/rollingCorrelations";
 import { calculateRollingBetaTimeSeries, generateMockSP500Data } from "@/lib/macro/betaRegression";
 import { analyzeRegimes } from "@/lib/macro/regimeDetection";
+import { getCache, setCache, getCacheKey, CACHE_CONFIG, getRemainingTTL } from "@/lib/cache/kv";
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,6 +23,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check cache first
+    const cacheKey = getCacheKey("macro", ticker);
+    const cachedAnalysis = await getCache(cacheKey);
+
+    if (cachedAnalysis) {
+      console.log(`[MACRO-ANALYSIS] Cache HIT for ${ticker}`);
+      const ttl = await getRemainingTTL(cacheKey);
+      return NextResponse.json({
+        ...cachedAnalysis,
+        _cached: true,
+        _cacheTTL: ttl,
+      });
+    }
+
+    console.log(`[MACRO-ANALYSIS] Cache MISS for ${ticker}`);
     console.log(`[MACRO-ANALYSIS] Analyzing correlations for ${ticker} with ${priceHistory.length} price points`);
 
     // Generate mock macro data (in production, would fetch real data from Yahoo Finance, FRED, etc.)
@@ -41,10 +57,20 @@ export async function POST(request: NextRequest) {
 
     console.log(`[MACRO-ANALYSIS] Found ${analysis.correlations.length} correlation measurements, ${rollingBeta.length} beta points, and regime: ${regimeAnalysis.currentRegime}`);
 
-    return NextResponse.json({
+    const result = {
       ...analysis,
       rollingBeta,
       regimeAnalysis,
+    };
+
+    // Cache the analysis (24 hour TTL for macro data)
+    await setCache(cacheKey, result, CACHE_CONFIG.macro.ttl);
+    console.log(`[MACRO-ANALYSIS] Cached analysis for ${ticker} for ${CACHE_CONFIG.macro.ttl}s`);
+
+    return NextResponse.json({
+      ...result,
+      _cached: false,
+      _cacheTTL: null,
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";

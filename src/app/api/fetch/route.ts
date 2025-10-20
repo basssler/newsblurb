@@ -5,6 +5,7 @@ import {
   getGlobalQuote,
   generateMockFundamentals,
 } from "@/lib/alphaVantage";
+import { getCache, setCache, getCacheKey, CACHE_CONFIG, getRemainingTTL } from "@/lib/cache/kv";
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,6 +20,27 @@ export async function POST(request: NextRequest) {
     }
 
     const tickerSymbol = ticker.toUpperCase();
+
+    // Check cache first (only for standard horizons, not custom date ranges)
+    const isCached = horizon !== "Custom";
+    let cacheKey = "";
+    let cachedData = null;
+
+    if (isCached) {
+      cacheKey = getCacheKey("fetch", tickerSymbol, horizon);
+      cachedData = await getCache(cacheKey);
+
+      if (cachedData) {
+        console.log(`[FETCH API] Cache HIT for ${tickerSymbol} (${horizon})`);
+        const ttl = await getRemainingTTL(cacheKey);
+        return NextResponse.json({
+          ...cachedData,
+          _cached: true,
+          _cacheTTL: ttl,
+        });
+      }
+      console.log(`[FETCH API] Cache MISS for ${tickerSymbol} (${horizon})`);
+    }
 
     // Fetch data based on horizon
     let priceHistory;
@@ -112,7 +134,17 @@ export async function POST(request: NextRequest) {
       })),
     };
 
-    return NextResponse.json(data);
+    // Cache the response (only for standard horizons)
+    if (isCached && cacheKey) {
+      await setCache(cacheKey, data, CACHE_CONFIG.fetch.ttl);
+      console.log(`[FETCH API] Cached ${tickerSymbol} (${horizon}) for ${CACHE_CONFIG.fetch.ttl}s`);
+    }
+
+    return NextResponse.json({
+      ...data,
+      _cached: false,
+      _cacheTTL: null,
+    });
   } catch (error) {
     console.error("Error in /api/fetch:", error);
     return NextResponse.json(
