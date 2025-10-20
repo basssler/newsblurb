@@ -328,10 +328,10 @@ export function analyzeRegimes(
 
   if (currentRegime === "risk-on") {
     interpretation += `Low volatility (VIX=${indicators.vix}), strong market momentum, and weak dollar suggest investor risk appetite. `;
-    interpretation += `Historically, ${historicalPerformance["risk-on"].ticker || "this stock"} performs best in this environment with avg return of ${(historicalPerformance["risk-on"].avgReturn * 100).toFixed(2)}% per day.`;
+    interpretation += `Historically, this stock performs best in this environment with avg return of ${(historicalPerformance.riskOn.avgReturn * 100).toFixed(2)}% per day.`;
   } else if (currentRegime === "risk-off") {
     interpretation += `High volatility (VIX=${indicators.vix}), market weakness, and dollar strength indicate flight to safety. `;
-    interpretation += `This stock typically performs worse in stress environments, with avg return of ${(historicalPerformance["risk-off"].avgReturn * 100).toFixed(2)}% per day.`;
+    interpretation += `This stock typically performs worse in stress environments, with avg return of ${(historicalPerformance.riskOff.avgReturn * 100).toFixed(2)}% per day.`;
   } else {
     interpretation += `Mixed signals from market indicators create uncertain conditions. `;
     interpretation += `Returns have been more balanced across regimes.`;
@@ -343,8 +343,8 @@ export function analyzeRegimes(
     actionItems.push("🟢 Growth/momentum strategies may outperform");
     actionItems.push("📈 Consider increasing equity exposure");
     if (
-      historicalPerformance["risk-on"].avgReturn >
-      historicalPerformance["risk-off"].avgReturn
+      historicalPerformance.riskOn.avgReturn >
+      historicalPerformance.riskOff.avgReturn
     ) {
       actionItems.push("✅ This stock typically benefits from risk-on conditions");
     }
@@ -352,8 +352,8 @@ export function analyzeRegimes(
     actionItems.push("🔴 Defensive/quality strategies may outperform");
     actionItems.push("⚠️ Consider hedging or reducing risk exposure");
     if (
-      historicalPerformance["risk-off"].avgReturn >
-      historicalPerformance["risk-on"].avgReturn
+      historicalPerformance.riskOff.avgReturn >
+      historicalPerformance.riskOn.avgReturn
     ) {
       actionItems.push("✅ This stock shows resilience in downturns");
     } else {
