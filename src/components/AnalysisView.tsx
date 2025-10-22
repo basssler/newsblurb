@@ -7,6 +7,7 @@ import CorrelationHeatmap from "./CorrelationHeatmap";
 import BetaChart from "./BetaChart";
 import RegimeTable from "./RegimeTable";
 import MacroEventCalendar from "./MacroEventCalendar";
+import PerspectiveSelector from "./PerspectiveSelector";
 import { CorrelationAnalysis } from "@/lib/macro/rollingCorrelations";
 import { RollingBetaPoint } from "@/lib/macro/betaRegression";
 import { RegimeAnalysis } from "@/lib/macro/regimeDetection";
@@ -443,10 +444,30 @@ export default function AnalysisView({
             <div className="space-y-6">
               <div>
                 <h3 className="text-xl font-bold text-foreground mb-1">AI-Powered Analysis</h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Intelligent summary powered by Claude AI</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Intelligent summary powered by Claude AI - Choose your perspective</p>
               </div>
+
+              {/* Multi-Perspective Selector */}
+              {priceHistory && priceHistory.length > 0 && (
+                <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
+                  <PerspectiveSelector
+                    ticker={ticker}
+                    fundamentals={fundamentals}
+                    technicals={technicals}
+                    priceHistory={priceHistory}
+                    regimeAnalysis={(correlationAnalysis as any)?.regimeAnalysis}
+                    betaAnalysis={(correlationAnalysis as any)?.rollingBeta?.length > 0 ? { currentBeta: 1.0 } : undefined}
+                  />
+                </div>
+              )}
+
+              {/* Default AI Summary */}
               {aiSummary ? (
-                <div className="space-y-6">
+                <div className="space-y-6 border-t border-slate-200 dark:border-slate-700 pt-6">
+                  <div>
+                    <h4 className="text-sm font-semibold text-slate-600 dark:text-slate-400 uppercase mb-3">Default Analysis</h4>
+                  </div>
+
                   <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-5">
                     <p className="text-sm font-medium text-blue-600 dark:text-blue-400 mb-2 uppercase tracking-wide">Headline</p>
                     <p className="text-lg font-bold text-blue-900 dark:text-blue-100">{aiSummary.headline}</p>
