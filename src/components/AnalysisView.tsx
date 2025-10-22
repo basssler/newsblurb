@@ -6,6 +6,7 @@ import MacroInsights from "./MacroInsights";
 import CorrelationHeatmap from "./CorrelationHeatmap";
 import BetaChart from "./BetaChart";
 import RegimeTable from "./RegimeTable";
+import MacroEventCalendar from "./MacroEventCalendar";
 import { CorrelationAnalysis } from "@/lib/macro/rollingCorrelations";
 import { RollingBetaPoint } from "@/lib/macro/betaRegression";
 import { RegimeAnalysis } from "@/lib/macro/regimeDetection";
@@ -394,6 +395,11 @@ export default function AnalysisView({
                       <span className="font-semibold">📊 What This Means: </span>
                       {correlationAnalysis.interpretation}
                     </p>
+                  </div>
+
+                  {/* Macro Event Calendar */}
+                  <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
+                    <MacroEventCalendar daysAhead={60} maxEvents={8} />
                   </div>
 
                   {/* Beta Chart */}
