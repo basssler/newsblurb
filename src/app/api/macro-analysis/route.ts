@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { analyzeCorrelations, generateMockMacroData } from "@/lib/macro/rollingCorrelations";
+import { analyzeCorrelations } from "@/lib/macro/rollingCorrelations";
 import { calculateRollingBetaTimeSeries, generateMockSP500Data } from "@/lib/macro/betaRegression";
 import { analyzeRegimes } from "@/lib/macro/regimeDetection";
 import { getCache, setCache, getCacheKey, CACHE_CONFIG, getRemainingTTL } from "@/lib/cache/kv";
+import { fetchRealMacroData, convertRealMacroToLegacyFormat } from "@/lib/realMacroData";
 
 export async function POST(request: NextRequest) {
   try {
@@ -40,8 +41,23 @@ export async function POST(request: NextRequest) {
     console.log(`[MACRO-ANALYSIS] Cache MISS for ${ticker}`);
     console.log(`[MACRO-ANALYSIS] Analyzing correlations for ${ticker} with ${priceHistory.length} price points`);
 
-    // Generate mock macro data (in production, would fetch real data from Yahoo Finance, FRED, etc.)
-    const macroData = generateMockMacroData(priceHistory);
+    // Fetch real macro data from APIs
+    console.log(`[MACRO-ANALYSIS] Fetching real macro data...`);
+    const realMacroData = await fetchRealMacroData();
+
+    // Log real data status
+    console.log(`[MACRO-ANALYSIS] Real macro data fetched:`, {
+      dxy: realMacroData.dxy.value,
+      vix: realMacroData.vix.value,
+      yield10y: realMacroData.yield10y.value,
+      oil: realMacroData.oil.value,
+      gold: realMacroData.gold.value,
+      sp500: realMacroData.sp500.value,
+      allSuccess: realMacroData.allSuccess,
+    });
+
+    // Convert to legacy format for backward compatibility with existing analysis code
+    const macroData = convertRealMacroToLegacyFormat(realMacroData, priceHistory);
 
     // Analyze correlations
     const analysis = analyzeCorrelations(priceHistory, macroData, ticker);
