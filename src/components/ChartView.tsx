@@ -279,13 +279,29 @@ export default function ChartView({
                 checked={item.checked}
                 onChange={(e) => item.onChange(e.target.checked)}
                 className="w-4 h-4 rounded accent-blue-500 cursor-pointer"
+                disabled={isLimitedData && (item.label === "Bollinger Bands" || item.label === "Support/Resistance")}
               />
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
+              <span className={`text-sm font-medium ${
+                isLimitedData && (item.label === "Bollinger Bands" || item.label === "Support/Resistance")
+                  ? "text-slate-400 dark:text-slate-600 cursor-not-allowed"
+                  : "text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors"
+              }`}>
                 {item.label}
               </span>
             </label>
           ))}
         </div>
+
+        {/* Indicator Limitations */}
+        {isLimitedData && (
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+            <p className="text-xs font-medium text-blue-900 dark:text-blue-100 mb-1">💡 Indicator Limitations:</p>
+            <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-1">
+              <li>• <strong>Bollinger Bands</strong> need 20+ days of data (you have {data.length} days)</li>
+              <li>• <strong>Support/Resistance</strong> levels are unreliable with limited historical data</li>
+            </ul>
+          </div>
+        )}
       </div>
 
       {/* Chart */}

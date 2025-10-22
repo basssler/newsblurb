@@ -55,6 +55,45 @@ export default function BetaChart({ data, ticker }: BetaChartProps) {
     );
   }
 
+  // Check if we have any non-null beta data
+  const hasAnyBeta = data.some(
+    (point) => point.beta30d !== null || point.beta90d !== null || point.beta250d !== null
+  );
+
+  if (!hasAnyBeta) {
+    return (
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-lg font-bold text-foreground">Rolling Beta Analysis</h3>
+          <p className="text-sm text-slate-600 dark:text-slate-400">
+            {ticker} market sensitivity over time (β = 1 means moving with S&P 500)
+          </p>
+        </div>
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-6">
+          <div className="space-y-3">
+            <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
+              ⚠️ Insufficient Data for Beta Analysis
+            </p>
+            <p className="text-sm text-amber-800 dark:text-amber-200">
+              Beta analysis requires at least <strong>30 days of historical data</strong>. Your current dataset has only <strong>{data.length} days</strong>.
+            </p>
+            <p className="text-sm text-amber-800 dark:text-amber-200">
+              To see rolling beta:
+            </p>
+            <ul className="text-sm text-amber-800 dark:text-amber-200 list-disc list-inside space-y-1 ml-2">
+              <li>For 30-day beta: Analyze at least 30 days of data</li>
+              <li>For 90-day beta: Analyze at least 90 days of data</li>
+              <li>For 250-day beta (most reliable): Analyze at least 250 days of data</li>
+            </ul>
+            <p className="text-xs text-amber-700 dark:text-amber-300 mt-2">
+              Try selecting "Long-Term" or a custom date range with a longer historical period.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {/* Header */}

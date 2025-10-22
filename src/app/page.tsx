@@ -41,6 +41,7 @@ export default function Home() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [customStartDate, setCustomStartDate] = useState<string | null>(null);
   const [customEndDate, setCustomEndDate] = useState<string | null>(null);
+  const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
 
   const handleAnalyzeInternal = async (
     analyzeHorizon?: "Intraday" | "1-Week" | "Long-Term" | string,
@@ -167,12 +168,16 @@ export default function Home() {
     startDate?: string,
     endDate?: string
   ) => {
+    // Update parent horizon state to reflect the new period
+    if (newHorizon !== "Custom") {
+      setHorizon(newHorizon as "Intraday" | "1-Week" | "Long-Term");
+    }
     handleAnalyzeInternal(newHorizon, startDate, endDate);
   };
 
   const handleInitialAnalyze = async () => {
-    // Check if custom dates are set (not null, even if empty string means they started entering dates)
-    if (customStartDate !== null && customEndDate !== null && customStartDate && customEndDate) {
+    // Check if custom dates are set and valid
+    if (showCustomDatePicker && customStartDate && customEndDate) {
       await handleAnalyzeInternal("Custom", customStartDate, customEndDate);
     } else {
       await handleAnalyzeInternal(horizon);
@@ -241,11 +246,12 @@ export default function Home() {
                         key={h}
                         onClick={() => {
                           if (h === "Custom") {
-                            // Enable custom date mode with empty dates - they'll show pickers
-                            setCustomStartDate("");
-                            setCustomEndDate("");
+                            // Enable custom date picker
+                            setShowCustomDatePicker(true);
+                            setHorizon("1-Week"); // Reset to default for date selection
                           } else {
                             setHorizon(h as "Intraday" | "1-Week" | "Long-Term");
+                            setShowCustomDatePicker(false);
                             setCustomStartDate(null);
                             setCustomEndDate(null);
                           }
@@ -253,7 +259,7 @@ export default function Home() {
                         className={`px-4 py-2.5 rounded-lg font-medium transition-all ${
                           (h !== "Custom" && horizon === h)
                             ? "bg-blue-500 text-white shadow-md"
-                            : (h === "Custom" && (customStartDate || customEndDate))
+                            : (h === "Custom" && showCustomDatePicker)
                             ? "bg-blue-500 text-white shadow-md"
                             : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
                         }`}
@@ -265,7 +271,7 @@ export default function Home() {
                 </div>
 
                 {/* Custom Date Range */}
-                {(customStartDate || customEndDate) && (
+                {showCustomDatePicker && (
                   <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 space-y-3">
                     <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
                       Custom Date Range
@@ -298,6 +304,7 @@ export default function Home() {
                       onClick={() => {
                         setCustomStartDate(null);
                         setCustomEndDate(null);
+                        setShowCustomDatePicker(false);
                         setHorizon("1-Week");
                       }}
                       className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
@@ -305,19 +312,6 @@ export default function Home() {
                       Clear custom dates
                     </button>
                   </div>
-                )}
-
-                {/* Show Custom Date Option if not already selected */}
-                {customStartDate === null && customEndDate === null && (
-                  <button
-                    onClick={() => {
-                      setCustomStartDate("2025-08-01");
-                      setCustomEndDate(new Date().toISOString().split("T")[0]);
-                    }}
-                    className="text-sm text-blue-600 dark:text-blue-400 hover:underline font-medium"
-                  >
-                    + Use custom date range
-                  </button>
                 )}
 
                 {/* Optional News Blurb */}
