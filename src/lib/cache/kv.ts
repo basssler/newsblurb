@@ -95,10 +95,10 @@ export async function deleteCache(key: string): Promise<void> {
  */
 export async function clearCache(): Promise<void> {
   try {
-    // This is dangerous - only use in development
-    // In production, use FLUSHDB with caution
+    // This is dangerous - only use in development or after deployments
     console.warn("[CACHE] Clearing all cache");
-    // await kv.flushdb();
+    await kv.flushdb();
+    console.warn("[CACHE] Cache cleared successfully");
   } catch (error) {
     console.error("[CACHE] Clear error:", error);
   }
