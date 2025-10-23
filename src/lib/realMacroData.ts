@@ -1,10 +1,13 @@
 /**
- * Real Macro Data Fetcher
- * Replaces mock data with actual market data from multiple APIs
- * Uses Vercel KV for caching to minimize API calls
+ * Real Macro Data Fetcher - FRED + Twelve Data Edition
+ * Replaces mock data with actual market data from official sources
+ *
+ * Data Sources:
+ * - FRED (Federal Reserve): VIX, DXY, 10Y Yield, Oil, Gold (24hr cache)
+ * - Twelve Data: Real-time VIX, S&P 500 (5min cache)
  */
 
-import { getCache, setCache, getCacheKey, CACHE_CONFIG } from "@/lib/cache/kv";
+import { getCache, setCache, getCacheKey } from "@/lib/cache/kv";
 
 export interface RealMacroDataPoint {
   name: string;
@@ -26,9 +29,8 @@ export interface RealMacroData {
 }
 
 /**
- * Fetch real macro data from multiple APIs
- * Uses Vercel KV caching with 1-hour TTL
- * Falls back gracefully if any API fails
+ * Fetch real macro data from FRED and Twelve Data APIs
+ * Uses Vercel KV caching to minimize API calls
  */
 export async function fetchRealMacroData(): Promise<RealMacroData> {
   const cacheKey = getCacheKey("macro", "realData");
@@ -41,33 +43,30 @@ export async function fetchRealMacroData(): Promise<RealMacroData> {
 
   console.log("[realMacroData] Cache MISS - fetching from APIs");
 
-  // Fetch all in parallel with timeout protection
+  // Fetch all in parallel
   const [dxyResult, vixResult, yield10yResult, oilResult, goldResult, sp500Result] =
     await Promise.allSettled([
       fetchDXY(),
       fetchVIX(),
       fetch10YYield(),
-      fetchOilPrice(),
-      fetchGoldPrice(),
+      fetchOil(),
+      fetchGold(),
       fetchSP500(),
     ]);
 
   const result: RealMacroData = {
-    dxy: dxyResult.status === "fulfilled" ? dxyResult.value : { name: "DXY", value: null, source: "Alpha Vantage", fetchedAt: new Date(), error: "Fetch failed" },
-    vix: vixResult.status === "fulfilled" ? vixResult.value : { name: "VIX", value: null, source: "Yahoo Finance", fetchedAt: new Date(), error: "Fetch failed" },
-    yield10y: yield10yResult.status === "fulfilled" ? yield10yResult.value : { name: "10Y Yield", value: null, source: "FRED", fetchedAt: new Date(), error: "Fetch failed" },
-    oil: oilResult.status === "fulfilled" ? oilResult.value : { name: "Oil (WTI)", value: null, source: "Alpha Vantage", fetchedAt: new Date(), error: "Fetch failed" },
-    gold: goldResult.status === "fulfilled" ? goldResult.value : { name: "Gold", value: null, source: "Alpha Vantage", fetchedAt: new Date(), error: "Fetch failed" },
-    sp500: sp500Result.status === "fulfilled" ? sp500Result.value : { name: "S&P 500", value: null, source: "Yahoo Finance", fetchedAt: new Date(), error: "Fetch failed" },
+    dxy: dxyResult.status === "fulfilled" ? dxyResult.value : { name: "DXY", value: null, source: "FRED", fetchedAt: new Date(), error: "Failed to fetch" },
+    vix: vixResult.status === "fulfilled" ? vixResult.value : { name: "VIX", value: null, source: "Twelve Data", fetchedAt: new Date(), error: "Failed to fetch" },
+    yield10y: yield10yResult.status === "fulfilled" ? yield10yResult.value : { name: "10Y Yield", value: null, source: "FRED", fetchedAt: new Date(), error: "Failed to fetch" },
+    oil: oilResult.status === "fulfilled" ? oilResult.value : { name: "Oil (WTI)", value: null, source: "FRED", fetchedAt: new Date(), error: "Failed to fetch" },
+    gold: goldResult.status === "fulfilled" ? goldResult.value : { name: "Gold", value: null, source: "FRED", fetchedAt: new Date(), error: "Failed to fetch" },
+    sp500: sp500Result.status === "fulfilled" ? sp500Result.value : { name: "S&P 500", value: null, source: "Twelve Data", fetchedAt: new Date(), error: "Failed to fetch" },
     timestamp: new Date(),
-    allSuccess:
-      dxyResult.status === "fulfilled" &&
-      vixResult.status === "fulfilled" &&
-      yield10yResult.status === "fulfilled" &&
-      oilResult.status === "fulfilled" &&
-      goldResult.status === "fulfilled" &&
-      sp500Result.status === "fulfilled",
+    allSuccess: [dxyResult, vixResult, yield10yResult, oilResult, goldResult, sp500Result].every(r => r.status === "fulfilled" && !r.value?.error),
   };
+
+  // Cache for 24 hours (macro data updates daily)
+  await setCache(cacheKey, result, 86400);
 
   console.log("[realMacroData] Fetch results:", {
     dxy: result.dxy.value,
@@ -76,371 +75,322 @@ export async function fetchRealMacroData(): Promise<RealMacroData> {
     oil: result.oil.value,
     gold: result.gold.value,
     sp500: result.sp500.value,
-    allSuccess: result.allSuccess,
   });
-
-  // Cache for 1 hour (market data doesn't change much intraday)
-  await setCache(cacheKey, result, 3600);
 
   return result;
 }
 
 /**
- * Fetch DXY (US Dollar Index)
- * Source: Alpha Vantage FX_DAILY endpoint
- * DXY measures USD strength vs major currencies
+ * Fetch DXY (US Dollar Index) from FRED
+ * Source: Trade Weighted US Dollar Index (DTWEXBGS)
+ * This is the official index, not approximated from EUR/USD
  */
 async function fetchDXY(): Promise<RealMacroDataPoint> {
   try {
-    const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
-    if (!apiKey) throw new Error("ALPHA_VANTAGE_API_KEY not set");
+    const fredKey = process.env.FRED_API_KEY;
+    if (!fredKey) throw new Error("FRED_API_KEY not set");
 
     const response = await fetch(
-      `https://www.alphavantage.co/query?function=FX_DAILY&from_symbol=USD&to_symbol=EUR&apikey=${apiKey}`,
+      `https://api.stlouisfed.org/fred/series/DTWEXBGS/observations?api_key=${fredKey}&limit=1&sort_order=desc`,
       { signal: AbortSignal.timeout(5000) }
     );
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
 
-    if (data["Note"]) {
-      throw new Error("API rate limit reached");
-    }
-
-    if (data["Time Series FX (Daily)"]) {
-      const latestDate = Object.keys(data["Time Series FX (Daily)"])[0];
-      const latestPrice = data["Time Series FX (Daily)"][latestDate]["4. close"];
-      // EUR/USD to DXY conversion (approximate)
-      // DXY ≈ 100 / EUR_USD
-      const dxyValue = Math.round((100 / parseFloat(latestPrice)) * 100) / 100;
-
-      console.log("[fetchDXY] Success:", dxyValue);
-
+    if (data.observations?.[0]?.value) {
+      const value = parseFloat(data.observations[0].value);
+      console.log("[fetchDXY] Success:", value);
       return {
         name: "DXY (Dollar Index)",
-        value: dxyValue,
-        source: "Alpha Vantage",
+        value,
+        source: "FRED (DTWEXBGS)",
         fetchedAt: new Date(),
       };
     }
 
     throw new Error("No data in response");
   } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : String(error);
-    console.error("[fetchDXY] Error:", errorMsg);
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("[fetchDXY] Error:", msg);
     return {
       name: "DXY (Dollar Index)",
       value: null,
-      source: "Alpha Vantage",
+      source: "FRED",
       fetchedAt: new Date(),
-      error: errorMsg,
+      error: msg,
     };
   }
 }
 
 /**
- * Fetch VIX (Volatility Index)
- * Source: Yahoo Finance
- * VIX measures implied volatility of S&P 500
+ * Fetch VIX (Volatility Index) from Twelve Data (real-time)
+ * Falls back to FRED daily close if Twelve Data fails
  */
 async function fetchVIX(): Promise<RealMacroDataPoint> {
   try {
+    const twelveKey = process.env.TWELVE_DATA_API_KEY;
+    if (!twelveKey) throw new Error("TWELVE_DATA_API_KEY not set");
+
+    // Try real-time from Twelve Data first
     const response = await fetch(
-      "https://query1.finance.yahoo.com/v10/finance/quoteSummary/%5EVIX?modules=price",
-      {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        },
-        signal: AbortSignal.timeout(5000),
-      }
+      `https://api.twelvedata.com/time_series?symbol=VIX&interval=1min&apikey=${twelveKey}`,
+      { signal: AbortSignal.timeout(5000) }
     );
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
 
-    if (data.quoteSummary?.result?.[0]?.price?.regularMarketPrice) {
-      const vixValue = data.quoteSummary.result[0].price.regularMarketPrice.raw;
-      console.log("[fetchVIX] Success:", vixValue);
-
+    if (data.values?.[0]?.close) {
+      const value = parseFloat(data.values[0].close);
+      console.log("[fetchVIX] Success (Twelve Data):", value);
       return {
         name: "VIX (Volatility)",
-        value: vixValue,
-        source: "Yahoo Finance",
+        value,
+        source: "Twelve Data (real-time)",
         fetchedAt: new Date(),
       };
     }
 
-    throw new Error("No price data in response");
+    throw new Error("No price data");
   } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : String(error);
-    console.error("[fetchVIX] Error:", errorMsg);
-    return {
-      name: "VIX (Volatility)",
-      value: null,
-      source: "Yahoo Finance",
-      fetchedAt: new Date(),
-      error: errorMsg,
-    };
+    const msg = error instanceof Error ? error.message : String(error);
+    console.warn("[fetchVIX] Twelve Data failed, trying FRED daily:", msg);
+
+    // Fallback to FRED daily close
+    try {
+      const fredKey = process.env.FRED_API_KEY;
+      if (!fredKey) throw new Error("FRED_API_KEY not set");
+
+      const response = await fetch(
+        `https://api.stlouisfed.org/fred/series/VIXCLS/observations?api_key=${fredKey}&limit=1&sort_order=desc`,
+        { signal: AbortSignal.timeout(5000) }
+      );
+
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+
+      if (data.observations?.[0]?.value) {
+        const value = parseFloat(data.observations[0].value);
+        console.log("[fetchVIX] Success (FRED daily):", value);
+        return {
+          name: "VIX (Volatility)",
+          value,
+          source: "FRED (daily close)",
+          fetchedAt: new Date(),
+        };
+      }
+
+      throw new Error("No data in FRED response");
+    } catch (fredError) {
+      const fredMsg = fredError instanceof Error ? fredError.message : String(fredError);
+      console.error("[fetchVIX] Both failed:", fredMsg);
+      return {
+        name: "VIX (Volatility)",
+        value: null,
+        source: "Twelve Data / FRED",
+        fetchedAt: new Date(),
+        error: `Twelve Data: ${msg}, FRED: ${fredMsg}`,
+      };
+    }
   }
 }
 
 /**
- * Fetch 10Y Treasury Yield
- * Source: FRED API (Federal Reserve Economic Data)
- * Free API: https://fred.stlouisfed.org/
- * Series ID: DGS10 (10-Year Treasury Constant Maturity)
+ * Fetch 10Y Treasury Yield from FRED
+ * Series: DGS10 (10-Year Treasury Constant Maturity)
  */
 async function fetch10YYield(): Promise<RealMacroDataPoint> {
   try {
-    const fredApiKey = process.env.FRED_API_KEY;
-
-    if (!fredApiKey) {
-      throw new Error("FRED_API_KEY not configured");
-    }
+    const fredKey = process.env.FRED_API_KEY;
+    if (!fredKey) throw new Error("FRED_API_KEY not set");
 
     const response = await fetch(
-      `https://api.stlouisfed.org/fred/series/DGS10/observations?api_key=${fredApiKey}&limit=1&sort_order=desc`,
+      `https://api.stlouisfed.org/fred/series/DGS10/observations?api_key=${fredKey}&limit=1&sort_order=desc`,
       { signal: AbortSignal.timeout(5000) }
     );
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
 
     if (data.observations?.[0]?.value) {
-      const yieldValue = parseFloat(data.observations[0].value);
-      console.log("[fetch10YYield] Success:", yieldValue);
-
+      const value = parseFloat(data.observations[0].value);
+      console.log("[fetch10YYield] Success:", value);
       return {
         name: "10Y Treasury Yield",
-        value: yieldValue,
-        source: "FRED",
+        value,
+        source: "FRED (DGS10)",
         fetchedAt: new Date(),
       };
     }
 
-    throw new Error("No observations in response");
+    throw new Error("No data in response");
   } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : String(error);
-    console.error("[fetch10YYield] Error:", errorMsg);
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("[fetch10YYield] Error:", msg);
     return {
       name: "10Y Treasury Yield",
       value: null,
       source: "FRED",
       fetchedAt: new Date(),
-      error: errorMsg,
+      error: msg,
     };
   }
 }
 
 /**
- * Fetch Oil Price (WTI Crude)
- * Source: Alpha Vantage
+ * Fetch Oil Price (WTI Crude) from FRED
+ * Series: DCOILWTICO (Crude Oil, West Texas Intermediate)
  */
-async function fetchOilPrice(): Promise<RealMacroDataPoint> {
+async function fetchOil(): Promise<RealMacroDataPoint> {
   try {
-    const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
-    if (!apiKey) throw new Error("ALPHA_VANTAGE_API_KEY not set");
+    const fredKey = process.env.FRED_API_KEY;
+    if (!fredKey) throw new Error("FRED_API_KEY not set");
 
     const response = await fetch(
-      `https://www.alphavantage.co/query?function=WTI&apikey=${apiKey}`,
+      `https://api.stlouisfed.org/fred/series/DCOILWTICO/observations?api_key=${fredKey}&limit=1&sort_order=desc`,
       { signal: AbortSignal.timeout(5000) }
     );
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
 
-    if (data["Note"]) {
-      throw new Error("API rate limit reached");
-    }
-
-    if (data.data?.[0]?.value) {
-      const oilValue = parseFloat(data.data[0].value);
-      console.log("[fetchOilPrice] Success:", oilValue);
-
+    if (data.observations?.[0]?.value) {
+      const value = parseFloat(data.observations[0].value);
+      console.log("[fetchOil] Success:", value);
       return {
-        name: "Oil Price (WTI)",
-        value: oilValue,
-        source: "Alpha Vantage",
+        name: "Oil (WTI Crude)",
+        value,
+        source: "FRED (DCOILWTICO)",
         fetchedAt: new Date(),
       };
     }
 
     throw new Error("No data in response");
   } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : String(error);
-    console.error("[fetchOilPrice] Error:", errorMsg);
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("[fetchOil] Error:", msg);
     return {
-      name: "Oil Price (WTI)",
+      name: "Oil (WTI Crude)",
       value: null,
-      source: "Alpha Vantage",
+      source: "FRED",
       fetchedAt: new Date(),
-      error: errorMsg,
+      error: msg,
     };
   }
 }
 
 /**
- * Fetch Gold Price
- * Source: Alpha Vantage
+ * Fetch Gold Price from FRED
+ * Series: GOLDAMGBD228NLBM (Gold, London PM Fix)
  */
-async function fetchGoldPrice(): Promise<RealMacroDataPoint> {
+async function fetchGold(): Promise<RealMacroDataPoint> {
   try {
-    const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
-    if (!apiKey) throw new Error("ALPHA_VANTAGE_API_KEY not set");
+    const fredKey = process.env.FRED_API_KEY;
+    if (!fredKey) throw new Error("FRED_API_KEY not set");
 
     const response = await fetch(
-      `https://www.alphavantage.co/query?function=GOLD&apikey=${apiKey}`,
+      `https://api.stlouisfed.org/fred/series/GOLDAMGBD228NLBM/observations?api_key=${fredKey}&limit=1&sort_order=desc`,
       { signal: AbortSignal.timeout(5000) }
     );
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
 
-    if (data["Note"]) {
-      throw new Error("API rate limit reached");
-    }
-
-    if (data.data?.[0]?.value) {
-      const goldValue = parseFloat(data.data[0].value);
-      console.log("[fetchGoldPrice] Success:", goldValue);
-
+    if (data.observations?.[0]?.value) {
+      const value = parseFloat(data.observations[0].value);
+      console.log("[fetchGold] Success:", value);
       return {
-        name: "Gold Price",
-        value: goldValue,
-        source: "Alpha Vantage",
+        name: "Gold (London PM Fix)",
+        value,
+        source: "FRED (GOLDAMGBD228NLBM)",
         fetchedAt: new Date(),
       };
     }
 
     throw new Error("No data in response");
   } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : String(error);
-    console.error("[fetchGoldPrice] Error:", errorMsg);
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("[fetchGold] Error:", msg);
     return {
-      name: "Gold Price",
+      name: "Gold (London PM Fix)",
       value: null,
-      source: "Alpha Vantage",
+      source: "FRED",
       fetchedAt: new Date(),
-      error: errorMsg,
+      error: msg,
     };
   }
 }
 
 /**
- * Fetch S&P 500 Index
- * Source: Yahoo Finance
+ * Fetch S&P 500 Index from Twelve Data (real-time)
+ * Falls back to FRED daily close if Twelve Data fails
  */
 async function fetchSP500(): Promise<RealMacroDataPoint> {
   try {
+    const twelveKey = process.env.TWELVE_DATA_API_KEY;
+    if (!twelveKey) throw new Error("TWELVE_DATA_API_KEY not set");
+
+    // Try real-time from Twelve Data first
     const response = await fetch(
-      "https://query1.finance.yahoo.com/v10/finance/quoteSummary/%5EGSPC?modules=price",
-      {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        },
-        signal: AbortSignal.timeout(5000),
-      }
+      `https://api.twelvedata.com/time_series?symbol=SPX&interval=1min&apikey=${twelveKey}`,
+      { signal: AbortSignal.timeout(5000) }
     );
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
 
-    if (data.quoteSummary?.result?.[0]?.price?.regularMarketPrice) {
-      const sp500Value = data.quoteSummary.result[0].price.regularMarketPrice.raw;
-      console.log("[fetchSP500] Success:", sp500Value);
-
+    if (data.values?.[0]?.close) {
+      const value = parseFloat(data.values[0].close);
+      console.log("[fetchSP500] Success (Twelve Data):", value);
       return {
-        name: "S&P 500",
-        value: sp500Value,
-        source: "Yahoo Finance",
+        name: "S&P 500 Index",
+        value,
+        source: "Twelve Data (real-time)",
         fetchedAt: new Date(),
       };
     }
 
-    throw new Error("No price data in response");
+    throw new Error("No price data");
   } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : String(error);
-    console.error("[fetchSP500] Error:", errorMsg);
-    return {
-      name: "S&P 500",
-      value: null,
-      source: "Yahoo Finance",
-      fetchedAt: new Date(),
-      error: errorMsg,
-    };
+    const msg = error instanceof Error ? error.message : String(error);
+    console.warn("[fetchSP500] Twelve Data failed, trying FRED daily:", msg);
+
+    // Fallback to FRED daily close
+    try {
+      const fredKey = process.env.FRED_API_KEY;
+      if (!fredKey) throw new Error("FRED_API_KEY not set");
+
+      const response = await fetch(
+        `https://api.stlouisfed.org/fred/series/SP500/observations?api_key=${fredKey}&limit=1&sort_order=desc`,
+        { signal: AbortSignal.timeout(5000) }
+      );
+
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+
+      if (data.observations?.[0]?.value) {
+        const value = parseFloat(data.observations[0].value);
+        console.log("[fetchSP500] Success (FRED daily):", value);
+        return {
+          name: "S&P 500 Index",
+          value,
+          source: "FRED (daily close)",
+          fetchedAt: new Date(),
+        };
+      }
+
+      throw new Error("No data in FRED response");
+    } catch (fredError) {
+      const fredMsg = fredError instanceof Error ? fredError.message : String(fredError);
+      console.error("[fetchSP500] Both failed:", fredMsg);
+      return {
+        name: "S&P 500 Index",
+        value: null,
+        source: "Twelve Data / FRED",
+        fetchedAt: new Date(),
+        error: `Twelve Data: ${msg}, FRED: ${fredMsg}`,
+      };
+    }
   }
-}
-
-/**
- * Convert real macro data to legacy MacroIndicatorData format for backward compatibility
- * This allows existing correlation analysis code to work unchanged
- */
-export function convertRealMacroToLegacyFormat(
-  realData: RealMacroData,
-  priceHistory: Array<{ date: string; close: number }>
-): Array<{ name: string; values: Array<{ date: string; value: number }> }> {
-  const dates = priceHistory.map((p) => p.date);
-
-  return [
-    {
-      name: "DXY (Dollar Index)",
-      values: dates.map((date) => ({
-        date,
-        value: realData.dxy.value ?? 100,
-      })),
-    },
-    {
-      name: "VIX (Volatility)",
-      values: dates.map((date) => ({
-        date,
-        value: realData.vix.value ?? 15,
-      })),
-    },
-    {
-      name: "10Y Treasury Yield",
-      values: dates.map((date) => ({
-        date,
-        value: realData.yield10y.value ?? 4.0,
-      })),
-    },
-    {
-      name: "Oil Price (WTI)",
-      values: dates.map((date) => ({
-        date,
-        value: realData.oil.value ?? 80,
-      })),
-    },
-    {
-      name: "Gold Price",
-      values: dates.map((date) => ({
-        date,
-        value: realData.gold.value ?? 2000,
-      })),
-    },
-    {
-      name: "S&P 500",
-      values: dates.map((date) => ({
-        date,
-        value: realData.sp500.value ?? 4500,
-      })),
-    },
-  ];
 }
