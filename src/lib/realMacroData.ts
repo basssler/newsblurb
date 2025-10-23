@@ -29,6 +29,32 @@ export interface RealMacroData {
 }
 
 /**
+ * Convert new RealMacroData structure to legacy format for backward compatibility
+ * Legacy format: { dxy: number, vix: number, ... }
+ * New format: { dxy: { value, ... }, vix: { value, ... }, ... }
+ */
+export function convertRealMacroToLegacyFormat(
+  realMacroData: RealMacroData,
+  _priceHistory?: Array<{ date: string; close: number }>
+): {
+  dxy: number | null;
+  vix: number | null;
+  yield10y: number | null;
+  oil: number | null;
+  gold: number | null;
+  sp500: number | null;
+} {
+  return {
+    dxy: realMacroData.dxy.value,
+    vix: realMacroData.vix.value,
+    yield10y: realMacroData.yield10y.value,
+    oil: realMacroData.oil.value,
+    gold: realMacroData.gold.value,
+    sp500: realMacroData.sp500.value,
+  };
+}
+
+/**
  * Fetch real macro data from FRED and Twelve Data APIs
  * Uses Vercel KV caching to minimize API calls
  */
