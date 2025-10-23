@@ -80,10 +80,13 @@ export async function POST(request: NextRequest) {
     );
 
     console.log(`[EXPLAIN-PERSPECTIVE] Calling ${perspective} perspective for ${ticker}`);
+    console.log(`[EXPLAIN-PERSPECTIVE] API Key present:`, !!apiKey);
     console.log(`[EXPLAIN-PERSPECTIVE] Variables:`, variables);
 
     // Call Console prompt
+    console.log(`[EXPLAIN-PERSPECTIVE] About to call callConsolePerspective...`);
     const analysis = await callConsolePerspective(perspective, variables, apiKey);
+    console.log(`[EXPLAIN-PERSPECTIVE] callConsolePerspective returned successfully`);
 
     // Try to parse as JSON (some perspectives return structured data)
     let parsedAnalysis: any = { content: analysis };

@@ -159,6 +159,18 @@ export async function callConsolePerspective(
   }
 
   try {
+    console.log(`[callConsolePerspective] Calling ${perspective} with prompt ID: ${config.promptId}`);
+    console.log(`[callConsolePerspective] Variables:`, JSON.stringify(variables, null, 2));
+
+    const requestBody = {
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 500,
+      prompt_id: config.promptId,
+      variables: variables,
+    };
+
+    console.log(`[callConsolePerspective] Request body:`, JSON.stringify(requestBody, null, 2));
+
     // Call Anthropic API with the prompt ID
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -167,30 +179,37 @@ export async function callConsolePerspective(
         "anthropic-version": "2023-06-01",
         "content-type": "application/json",
       },
-      body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 500,
-        prompt_id: config.promptId,
-        variables: variables,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
+    console.log(`[callConsolePerspective] Response status:`, response.status);
+
+    const responseText = await response.text();
+    console.log(`[callConsolePerspective] Response body (first 500 chars):`, responseText.substring(0, 500));
+
     if (!response.ok) {
-      const error = await response.json();
-      console.error(`Error calling Console prompt ${perspective}:`, error);
-      throw new Error(`Failed to call Console prompt: ${error.error?.message || "Unknown error"}`);
+      let error;
+      try {
+        error = JSON.parse(responseText);
+      } catch {
+        error = { message: responseText };
+      }
+      console.error(`[callConsolePerspective] Error calling Console prompt ${perspective}:`, error);
+      throw new Error(`Failed to call Console prompt: ${error.error?.message || error.message || "Unknown error"}`);
     }
 
-    const data = await response.json();
+    const data = JSON.parse(responseText);
     const content = data.content[0]?.text;
 
     if (!content) {
+      console.error(`[callConsolePerspective] No content in response. Full response:`, data);
       throw new Error("No content returned from Console prompt");
     }
 
+    console.log(`[callConsolePerspective] Success! Content length:`, content.length);
     return content;
   } catch (error) {
-    console.error(`Error in callConsolePerspective for ${perspective}:`, error);
+    console.error(`[callConsolePerspective] Error in callConsolePerspective for ${perspective}:`, error);
     throw error;
   }
 }
