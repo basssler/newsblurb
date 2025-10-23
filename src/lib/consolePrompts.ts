@@ -144,8 +144,122 @@ export function buildAnalysisVariables(
 }
 
 /**
- * Call a Console prompt with variables
- * Note: This requires the Anthropic SDK or direct API call with prompt_id
+ * Prompt templates for each perspective
+ * Variables are substituted using VARIABLE_NAME syntax
+ */
+const PERSPECTIVE_PROMPTS: Record<AnalysisPerspective, string> = {
+  bullish:
+    "Analyze TICKER from a bullish investment perspective. Identify growth opportunities, catalysts, and upside potential.\n\n" +
+    "Current Data:\n" +
+    "- Price: $CURRENT_PRICE\n" +
+    "- P/E Ratio: PE_RATIO\n" +
+    "- RSI: RSI\n" +
+    "- Price Range: PRICE_RANGE\n" +
+    "- Trend: PRICE_TREND\n" +
+    "- Market Regime: REGIME\n" +
+    "- Beta: BETA\n\n" +
+    "Market Context:\n" +
+    "- VIX: VIX\n" +
+    "- DXY: DXY\n" +
+    "- 10Y Yield: YIELD_10Y%\n" +
+    "- Oil: $OIL\n" +
+    "- Gold: $GOLD\n" +
+    "- S&P 500: SP500\n\n" +
+    "Provide a concise bullish case highlighting why TICKER could outperform, key catalysts, and price targets.",
+
+  bearish:
+    "Analyze TICKER from a bearish investment perspective. Identify risks, headwinds, and downside risks.\n\n" +
+    "Current Data:\n" +
+    "- Price: $CURRENT_PRICE\n" +
+    "- P/E Ratio: PE_RATIO\n" +
+    "- RSI: RSI\n" +
+    "- Price Range: PRICE_RANGE\n" +
+    "- Trend: PRICE_TREND\n" +
+    "- Market Regime: REGIME\n" +
+    "- Beta: BETA\n\n" +
+    "Market Context:\n" +
+    "- VIX: VIX\n" +
+    "- DXY: DXY\n" +
+    "- 10Y Yield: YIELD_10Y%\n" +
+    "- Oil: $OIL\n" +
+    "- Gold: $GOLD\n" +
+    "- S&P 500: SP500\n\n" +
+    "Provide a concise bearish case highlighting key risks, support levels, and potential downside scenarios for TICKER.",
+
+  risk:
+    "Analyze risk metrics and volatility exposure for TICKER.\n\n" +
+    "Current Data:\n" +
+    "- Price: $CURRENT_PRICE\n" +
+    "- P/E Ratio: PE_RATIO\n" +
+    "- RSI: RSI\n" +
+    "- Price Range: PRICE_RANGE\n" +
+    "- ATR: ATR\n" +
+    "- Trend: PRICE_TREND\n" +
+    "- Market Regime: REGIME\n" +
+    "- Beta: BETA\n" +
+    "- Market Correlation: MARKET_CORRELATION\n\n" +
+    "Market Context:\n" +
+    "- VIX: VIX\n" +
+    "- DXY: DXY\n" +
+    "- 10Y Yield: YIELD_10Y%\n" +
+    "- Oil: $OIL\n" +
+    "- Gold: $GOLD\n" +
+    "- S&P 500: SP500\n\n" +
+    "Provide risk assessment including volatility outlook, drawdown potential, and hedging considerations for TICKER.",
+
+  options:
+    "Suggest options strategies for TICKER based on current market conditions.\n\n" +
+    "Current Data:\n" +
+    "- Price: $CURRENT_PRICE\n" +
+    "- P/E Ratio: PE_RATIO\n" +
+    "- RSI: RSI\n" +
+    "- Price Range: PRICE_RANGE\n" +
+    "- ATR: ATR\n" +
+    "- Trend: PRICE_TREND\n" +
+    "- Market Regime: REGIME\n" +
+    "- Beta: BETA\n\n" +
+    "Market Context:\n" +
+    "- VIX: VIX (Volatility level)\n" +
+    "- DXY: DXY\n" +
+    "- 10Y Yield: YIELD_10Y%\n" +
+    "- Oil: $OIL\n" +
+    "- Gold: $GOLD\n" +
+    "- S&P 500: SP500\n\n" +
+    "Recommend 1-2 options strategies for TICKER, considering current volatility regime and price action. Include rationale and risk/reward profile.",
+
+  macro:
+    "Analyze how macroeconomic factors impact TICKER.\n\n" +
+    "Ticker Data:\n" +
+    "- Price: $CURRENT_PRICE\n" +
+    "- P/E Ratio: PE_RATIO\n" +
+    "- Beta: BETA\n" +
+    "- Market Correlation: MARKET_CORRELATION\n\n" +
+    "Macro Environment:\n" +
+    "- US Dollar Index (DXY): DXY\n" +
+    "- VIX (Volatility): VIX\n" +
+    "- 10-Year Treasury Yield: YIELD_10Y%\n" +
+    "- Oil Price (WTI): $OIL\n" +
+    "- Gold Price: $GOLD\n" +
+    "- S&P 500 Level: SP500\n" +
+    "- Market Regime: REGIME\n\n" +
+    "Analyze the macro headwinds and tailwinds for TICKER in the current economic environment. Focus on currency, rates, commodities, and market sentiment impacts.",
+};
+
+/**
+ * Substitute variables into prompt template
+ */
+function substituteVariables(template: string, variables: AnalysisVariables): string {
+  let result = template;
+  Object.entries(variables).forEach(([key, value]) => {
+    const placeholder = new RegExp(`\\b${key}\\b`, "g");
+    result = result.replace(placeholder, String(value));
+  });
+  return result;
+}
+
+/**
+ * Call a Console perspective analysis by substituting variables into the prompt
+ * and calling the Anthropic Messages API directly
  */
 export async function callConsolePerspective(
   perspective: AnalysisPerspective,
@@ -158,20 +272,40 @@ export async function callConsolePerspective(
     throw new Error(`Unknown perspective: ${perspective}`);
   }
 
+  // Get the prompt template for this perspective
+  const promptTemplate = PERSPECTIVE_PROMPTS[perspective];
+  if (!promptTemplate) {
+    throw new Error(`No prompt template for perspective: ${perspective}`);
+  }
+
   try {
-    console.log(`[callConsolePerspective] Calling ${perspective} with prompt ID: ${config.promptId}`);
+    console.log(`[callConsolePerspective] Calling ${perspective} for ${variables.TICKER}`);
     console.log(`[callConsolePerspective] Variables:`, JSON.stringify(variables, null, 2));
 
+    // Substitute variables into the prompt template
+    const substitutedPrompt = substituteVariables(promptTemplate, variables);
+    console.log(`[callConsolePerspective] Substituted prompt (first 300 chars):`, substitutedPrompt.substring(0, 300));
+
+    // Build proper Messages API request
     const requestBody = {
       model: "claude-haiku-4-5-20251001",
       max_tokens: 500,
-      prompt_id: config.promptId,
-      variables: variables,
+      messages: [
+        {
+          role: "user",
+          content: substitutedPrompt,
+        },
+      ],
     };
 
-    console.log(`[callConsolePerspective] Request body:`, JSON.stringify(requestBody, null, 2));
+    console.log(`[callConsolePerspective] Request body structure:`, {
+      model: requestBody.model,
+      max_tokens: requestBody.max_tokens,
+      message_count: requestBody.messages.length,
+      first_message_length: requestBody.messages[0].content.length,
+    });
 
-    // Call Anthropic API with the prompt ID
+    // Call Anthropic Messages API
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -194,8 +328,8 @@ export async function callConsolePerspective(
       } catch {
         error = { message: responseText };
       }
-      console.error(`[callConsolePerspective] Error calling Console prompt ${perspective}:`, error);
-      throw new Error(`Failed to call Console prompt: ${error.error?.message || error.message || "Unknown error"}`);
+      console.error(`[callConsolePerspective] Error calling API for ${perspective}:`, error);
+      throw new Error(`Failed to call API: ${error.error?.message || error.message || "Unknown error"}`);
     }
 
     const data = JSON.parse(responseText);
@@ -203,7 +337,7 @@ export async function callConsolePerspective(
 
     if (!content) {
       console.error(`[callConsolePerspective] No content in response. Full response:`, data);
-      throw new Error("No content returned from Console prompt");
+      throw new Error("No content returned from API");
     }
 
     console.log(`[callConsolePerspective] Success! Content length:`, content.length);
