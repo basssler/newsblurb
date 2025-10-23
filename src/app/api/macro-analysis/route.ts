@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { analyzeCorrelations } from "@/lib/macro/rollingCorrelations";
+import { analyzeCorrelations, generateMockMacroData } from "@/lib/macro/rollingCorrelations";
 import { calculateRollingBetaTimeSeries, generateMockSP500Data } from "@/lib/macro/betaRegression";
 import { analyzeRegimes } from "@/lib/macro/regimeDetection";
 import { getCache, setCache, getCacheKey, CACHE_CONFIG, getRemainingTTL } from "@/lib/cache/kv";
-import { fetchRealMacroData, convertRealMacroToLegacyFormat } from "@/lib/realMacroData";
+import { fetchRealMacroData, convertRealMacroToLegacyFormat, fetchHistoricalMacroData } from "@/lib/realMacroData";
 
 export async function POST(request: NextRequest) {
   try {
@@ -41,8 +41,8 @@ export async function POST(request: NextRequest) {
     console.log(`[MACRO-ANALYSIS] Cache MISS for ${ticker}`);
     console.log(`[MACRO-ANALYSIS] Analyzing correlations for ${ticker} with ${priceHistory.length} price points`);
 
-    // Fetch real macro data from APIs
-    console.log(`[MACRO-ANALYSIS] Fetching real macro data...`);
+    // Fetch current macro data for context
+    console.log(`[MACRO-ANALYSIS] Fetching current macro data...`);
     const realMacroData = await fetchRealMacroData();
 
     // Log real data status
@@ -56,13 +56,29 @@ export async function POST(request: NextRequest) {
       allSuccess: realMacroData.allSuccess,
     });
 
-    // Note: We have snapshot macro data (current values), not time series
-    // So we create a minimal analysis object instead of calculating correlations
+    // Fetch historical macro data for correlation analysis
+    console.log(`[MACRO-ANALYSIS] Fetching historical macro data...`);
+    let historicalMacroData = await fetchHistoricalMacroData();
+
+    let dataSource = "Real FRED API";
+
+    // If we don't have enough historical data, fall back to mock data
+    if (!historicalMacroData || historicalMacroData.length === 0) {
+      console.warn(`[MACRO-ANALYSIS] No historical data available, using mock data for demonstration`);
+      historicalMacroData = generateMockMacroData(priceHistory);
+      dataSource = "Mock (Demo)";
+    }
+
+    console.log(`[MACRO-ANALYSIS] Using ${dataSource} data with ${historicalMacroData.length} indicators`);
+
+    // Calculate correlations with historical macro data
+    const correlationAnalysis = analyzeCorrelations(priceHistory, historicalMacroData, ticker);
+
     const analysis = {
       ticker,
-      analysisDate: new Date().toISOString(),
-      correlations: [], // Empty - we don't have historical macro data for correlation
-      interpretation: `Macro snapshot: DXY=${realMacroData.dxy.value}, VIX=${realMacroData.vix.value}, 10Y=${realMacroData.yield10y.value}`,
+      analysisDate: correlationAnalysis.analysisDate,
+      correlations: correlationAnalysis.correlations,
+      interpretation: `${correlationAnalysis.interpretation} (Data source: ${dataSource})`,
     };
 
     // Generate mock S&P 500 data for beta analysis

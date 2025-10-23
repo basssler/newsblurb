@@ -8,6 +8,7 @@
  */
 
 import { getCache, setCache, getCacheKey } from "@/lib/cache/kv";
+import type { MacroIndicatorData } from "@/lib/macro/rollingCorrelations";
 
 export interface RealMacroDataPoint {
   name: string;
@@ -418,5 +419,134 @@ async function fetchSP500(): Promise<RealMacroDataPoint> {
         error: `Twelve Data: ${msg}, FRED: ${fredMsg}`,
       };
     }
+  }
+}
+
+/**
+ * Fetch historical macro data from FRED for correlation analysis
+ * Returns time series (arrays of {date, value}) for calculating rolling correlations
+ */
+export async function fetchHistoricalMacroData(): Promise<MacroIndicatorData[]> {
+  const cacheKey = getCacheKey("macro", "historical");
+  const cached = await getCache(cacheKey);
+
+  if (cached) {
+    console.log("[fetchHistoricalMacroData] Cache HIT");
+    return cached as MacroIndicatorData[];
+  }
+
+  console.log("[fetchHistoricalMacroData] Cache MISS - fetching from FRED");
+
+  // Calculate date range: last 300 days
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 300);
+
+  const formatDate = (d: Date) => d.toISOString().split("T")[0];
+  const startDateStr = formatDate(startDate);
+  const endDateStr = formatDate(endDate);
+
+  console.log(
+    `[fetchHistoricalMacroData] Fetching data from ${startDateStr} to ${endDateStr}`
+  );
+
+  const indicators: MacroIndicatorData[] = [];
+
+  // Fetch each indicator's historical data in parallel
+  const results = await Promise.allSettled([
+    fetchFredHistorical("DTWEXBGS", "DXY (Dollar Index)", startDateStr, endDateStr),
+    fetchFredHistorical("VIXCLS", "VIX (Volatility)", startDateStr, endDateStr),
+    fetchFredHistorical("DGS10", "10Y Treasury Yield", startDateStr, endDateStr),
+    fetchFredHistorical("DCOILWTICO", "Oil Price (WTI)", startDateStr, endDateStr),
+    fetchFredHistorical(
+      "GOLDAMGBD228NLBM",
+      "Gold Price",
+      startDateStr,
+      endDateStr
+    ),
+    fetchFredHistorical("SP500", "S&P 500", startDateStr, endDateStr),
+  ]);
+
+  // Process results
+  results.forEach((result, index) => {
+    if (result.status === "fulfilled" && result.value) {
+      indicators.push(result.value);
+    }
+  });
+
+  // Log what we got
+  console.log(
+    `[fetchHistoricalMacroData] Successfully fetched ${indicators.length} indicators`
+  );
+  indicators.forEach((ind) => {
+    console.log(
+      `  ${ind.name}: ${ind.values.length} data points (${ind.values[0]?.date} to ${ind.values[ind.values.length - 1]?.date})`
+    );
+  });
+
+  // Cache for 24 hours
+  if (indicators.length > 0) {
+    await setCache(cacheKey, indicators, 86400);
+  }
+
+  return indicators;
+}
+
+/**
+ * Fetch historical data for a single FRED series
+ */
+async function fetchFredHistorical(
+  seriesId: string,
+  name: string,
+  startDate: string,
+  endDate: string
+): Promise<MacroIndicatorData | null> {
+  try {
+    const fredKey = process.env.FRED_API_KEY;
+    if (!fredKey) throw new Error("FRED_API_KEY not set");
+
+    console.log(
+      `[fetchFredHistorical] Fetching ${seriesId} from ${startDate} to ${endDate}`
+    );
+
+    const response = await fetch(
+      `https://api.stlouisfed.org/fred/series/${seriesId}/observations?api_key=${fredKey}&start_date=${startDate}&end_date=${endDate}&sort_order=asc`,
+      { signal: AbortSignal.timeout(10000) }
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (!data.observations || data.observations.length === 0) {
+      throw new Error("No observations in response");
+    }
+
+    // Filter out entries with no value
+    const values = data.observations
+      .filter((obs: any) => obs.value !== ".")
+      .map((obs: any) => ({
+        date: obs.date,
+        value: parseFloat(obs.value),
+      }));
+
+    if (values.length === 0) {
+      throw new Error("No valid values found");
+    }
+
+    console.log(
+      `[fetchFredHistorical] ${seriesId}: Got ${values.length} data points`
+    );
+
+    return {
+      name,
+      values,
+    };
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.warn(`[fetchFredHistorical] Failed to fetch ${seriesId}: ${msg}`);
+    return null;
   }
 }
