@@ -105,22 +105,43 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      console.warn(`[FETCH API] Falling back to mock data`);
-      // Fall back to mock data on error
-      priceHistory = [
-        { date: "2025-10-11", close: 175.2 },
-        { date: "2025-10-12", close: 176.8 },
-        { date: "2025-10-13", close: 175.5 },
-        { date: "2025-10-14", close: 177.2 },
-        { date: "2025-10-15", close: 178.5 },
-        { date: "2025-10-16", close: 176.9 },
-        { date: "2025-10-17", close: 179.3 },
-      ];
+      console.warn(`[FETCH API] Falling back to mock data for ${tickerSymbol}`);
+
+      // Generate ticker-specific mock data (same approach as generateMockFundamentals)
+      const hash = tickerSymbol
+        .split("")
+        .reduce((acc, char) => acc + char.charCodeAt(0), 0);
+
+      const basePrice = 100 + (hash % 200); // $100-$300 range
+      const volatility = 3 + (hash % 7); // Different volatility per stock (3-10%)
+
+      // Generate 30 days of mock price history
+      const mockDays = 30;
+      const mockHistory = [];
+      for (let i = 0; i < mockDays; i++) {
+        const date = new Date();
+        date.setDate(date.getDate() - (mockDays - i));
+
+        // Ticker-specific but realistic variation
+        const variation = Math.sin(hash + i * 0.5) * volatility + (Math.random() - 0.5) * 2;
+        const price = Math.max(basePrice * 0.9, basePrice + variation); // Prevent extreme lows
+
+        mockHistory.push({
+          date: date.toISOString().split('T')[0],
+          close: Math.round(price * 100) / 100,
+        });
+      }
+
+      priceHistory = mockHistory;
+      const startPrice = mockHistory[0].close;
+      const endPrice = mockHistory[mockHistory.length - 1].close;
+      const changePercent = ((endPrice - startPrice) / startPrice) * 100;
+
       currentQuote = {
-        price: 179.3,
+        price: endPrice,
         symbol: tickerSymbol,
-        volume: 50000000,
-        changePercent: 2.3,
+        volume: 1000000 + (hash % 100000000), // $1M-$100M range
+        changePercent: Math.round(changePercent * 100) / 100,
       };
     }
 
