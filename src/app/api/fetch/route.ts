@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
       // Generate ticker-specific mock data (same approach as generateMockFundamentals)
       const hash = tickerSymbol
         .split("")
-        .reduce((acc: number, char) => acc + char.charCodeAt(0), 0);
+        .reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0);
 
       const basePrice = 100 + (hash % 200); // $100-$300 range
       const volatility = 3 + (hash % 7); // Different volatility per stock (3-10%)
