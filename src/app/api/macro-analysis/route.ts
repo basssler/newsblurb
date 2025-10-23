@@ -56,11 +56,14 @@ export async function POST(request: NextRequest) {
       allSuccess: realMacroData.allSuccess,
     });
 
-    // Convert to legacy format for backward compatibility with existing analysis code
-    const macroData = convertRealMacroToLegacyFormat(realMacroData, priceHistory);
-
-    // Analyze correlations
-    const analysis = analyzeCorrelations(priceHistory, macroData, ticker);
+    // Note: We have snapshot macro data (current values), not time series
+    // So we create a minimal analysis object instead of calculating correlations
+    const analysis = {
+      ticker,
+      analysisDate: new Date().toISOString(),
+      correlations: [], // Empty - we don't have historical macro data for correlation
+      interpretation: `Macro snapshot: DXY=${realMacroData.dxy.value}, VIX=${realMacroData.vix.value}, 10Y=${realMacroData.yield10y.value}`,
+    };
 
     // Generate mock S&P 500 data for beta analysis
     const sp500Data = generateMockSP500Data(priceHistory);
