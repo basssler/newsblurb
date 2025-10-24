@@ -1,10 +1,9 @@
 /**
- * Real Macro Data Fetcher - FRED + Twelve Data Edition
- * Replaces mock data with actual market data from official sources
+ * Real Macro Data Fetcher - Yahoo Finance Edition
+ * Replaces mock data with actual market data from Yahoo Finance
  *
  * Data Sources:
- * - FRED (Federal Reserve): VIX, DXY, 10Y Yield, Oil, Gold (24hr cache)
- * - Twelve Data: Real-time VIX, S&P 500 (5min cache)
+ * - Yahoo Finance: VIX, DXY, 10Y Yield, Oil, Gold, S&P 500 (No API key needed!)
  */
 
 import { getCache, setCache, getCacheKey } from "@/lib/cache/kv";
@@ -549,4 +548,120 @@ async function fetchFredHistorical(
     console.warn(`[fetchFredHistorical] Failed to fetch ${seriesId}: ${msg}`);
     return null;
   }
+}
+
+/**
+ * Fetch historical macro data from Yahoo Finance via REST API
+ * No API key required!
+ */
+export async function fetchHistoricalMacroDataFromYahoo(): Promise<
+  MacroIndicatorData[]
+> {
+  const cacheKey = getCacheKey("macro", "historical-yahoo");
+  const cached = await getCache(cacheKey);
+
+  if (cached) {
+    console.log("[fetchHistoricalMacroDataFromYahoo] Cache HIT");
+    return cached as MacroIndicatorData[];
+  }
+
+  console.log("[fetchHistoricalMacroDataFromYahoo] Cache MISS - fetching from Yahoo Finance");
+
+  // Calculate date range: last 300 days
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 300);
+
+  const startTimestamp = Math.floor(startDate.getTime() / 1000);
+  const endTimestamp = Math.floor(endDate.getTime() / 1000);
+
+  console.log(
+    `[fetchHistoricalMacroDataFromYahoo] Fetching data from ${startDate.toISOString().split("T")[0]} to ${endDate.toISOString().split("T")[0]}`
+  );
+
+  const indicators: MacroIndicatorData[] = [];
+
+  // Yahoo Finance symbols
+  const symbols = [
+    { symbol: "^VIX", name: "VIX (Volatility)" },
+    { symbol: "DXY=X", name: "DXY (Dollar Index)" },
+    { symbol: "^TNX", name: "10Y Treasury Yield" },
+    { symbol: "CL=F", name: "Oil Price (WTI)" },
+    { symbol: "GC=F", name: "Gold Price" },
+    { symbol: "^GSPC", name: "S&P 500" },
+  ];
+
+  // Fetch each symbol's historical data
+  for (const { symbol, name } of symbols) {
+    try {
+      console.log(`[fetchHistoricalMacroDataFromYahoo] Fetching ${symbol}...`);
+
+      const url = `https://query1.finance.yahoo.com/v7/finance/download/${symbol}?period1=${startTimestamp}&period2=${endTimestamp}&interval=1d&events=history&includeAdjustedClose=true`;
+
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(10000),
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Accept": "text/csv,text/plain,*/*",
+          "Accept-Encoding": "gzip, deflate, br",
+          "Accept-Language": "en-US,en;q=0.9",
+          "Referer": "https://finance.yahoo.com/",
+          "DNT": "1",
+          "Connection": "keep-alive",
+          "Upgrade-Insecure-Requests": "1",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const csv = await response.text();
+      const lines = csv.split("\n");
+
+      if (lines.length < 2) {
+        throw new Error("No data returned");
+      }
+
+      // Parse CSV (skip header)
+      const values = lines
+        .slice(1)
+        .filter((line) => line.trim())
+        .map((line) => {
+          const parts = line.split(",");
+          return {
+            date: parts[0],
+            value: parseFloat(parts[4] || parts[1]), // Use adjusted close or close
+          };
+        })
+        .filter((v) => !isNaN(v.value) && v.value > 0);
+
+      if (values.length === 0) {
+        throw new Error("No valid values found");
+      }
+
+      console.log(
+        `[fetchHistoricalMacroDataFromYahoo] ${symbol}: Got ${values.length} data points`
+      );
+
+      indicators.push({ name, values });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      console.warn(
+        `[fetchHistoricalMacroDataFromYahoo] Failed to fetch ${symbol}: ${msg}`
+      );
+    }
+  }
+
+  console.log(
+    `[fetchHistoricalMacroDataFromYahoo] Successfully fetched ${indicators.length} indicators`
+  );
+
+  // Cache for 24 hours
+  if (indicators.length > 0) {
+    await setCache(cacheKey, indicators, 86400);
+  }
+
+  return indicators;
 }

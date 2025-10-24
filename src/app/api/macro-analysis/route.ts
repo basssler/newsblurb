@@ -3,7 +3,12 @@ import { analyzeCorrelations, generateMockMacroData } from "@/lib/macro/rollingC
 import { calculateRollingBetaTimeSeries, generateMockSP500Data } from "@/lib/macro/betaRegression";
 import { analyzeRegimes } from "@/lib/macro/regimeDetection";
 import { getCache, setCache, getCacheKey, CACHE_CONFIG, getRemainingTTL } from "@/lib/cache/kv";
-import { fetchRealMacroData, convertRealMacroToLegacyFormat, fetchHistoricalMacroData } from "@/lib/realMacroData";
+import {
+  fetchRealMacroData,
+  convertRealMacroToLegacyFormat,
+  fetchHistoricalMacroData,
+  fetchHistoricalMacroDataFromYahoo,
+} from "@/lib/realMacroData";
 
 export async function POST(request: NextRequest) {
   try {
@@ -58,9 +63,15 @@ export async function POST(request: NextRequest) {
 
     // Fetch historical macro data for correlation analysis
     console.log(`[MACRO-ANALYSIS] Fetching historical macro data...`);
-    let historicalMacroData = await fetchHistoricalMacroData();
+    let historicalMacroData = await fetchHistoricalMacroDataFromYahoo();
+    let dataSource = "Yahoo Finance";
 
-    let dataSource = "Real FRED API";
+    // If Yahoo Finance fails, try FRED
+    if (!historicalMacroData || historicalMacroData.length === 0) {
+      console.warn(`[MACRO-ANALYSIS] Yahoo Finance failed, trying FRED...`);
+      historicalMacroData = await fetchHistoricalMacroData();
+      dataSource = "FRED API";
+    }
 
     // If we don't have enough historical data, fall back to mock data
     if (!historicalMacroData || historicalMacroData.length === 0) {
