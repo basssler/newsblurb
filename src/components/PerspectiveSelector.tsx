@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AnalysisPerspective, PERSPECTIVE_CONFIGS, getAllPerspectives } from "@/lib/consolePrompts";
 
 interface PerspectiveSelectorProps {
@@ -24,6 +24,8 @@ interface PerspectiveSelectorProps {
   onAnalysisComplete?: (analysis: any) => void;
 }
 
+const PERSPECTIVE_STORAGE_KEY = "newsblurb_preferred_perspective";
+
 export default function PerspectiveSelector({
   ticker,
   fundamentals,
@@ -37,6 +39,25 @@ export default function PerspectiveSelector({
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  // Load saved perspective preference from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem(PERSPECTIVE_STORAGE_KEY);
+      if (saved && ["bullish", "bearish", "risk", "options", "macro"].includes(saved)) {
+        setSelectedPerspective(saved as AnalysisPerspective);
+      }
+      setMounted(true);
+    }
+  }, []);
+
+  // Save perspective preference to localStorage whenever it changes
+  useEffect(() => {
+    if (mounted && typeof window !== "undefined") {
+      localStorage.setItem(PERSPECTIVE_STORAGE_KEY, selectedPerspective);
+    }
+  }, [selectedPerspective, mounted]);
 
   const perspectives = getAllPerspectives();
 
