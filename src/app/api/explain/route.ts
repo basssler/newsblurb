@@ -203,7 +203,13 @@ Return ONLY the JSON object, no markdown or extra text.`;
 
     // Try to parse the JSON response
     try {
-      const analysis = JSON.parse(content);
+      // First, clean any markdown code blocks
+      let cleanContent = content.trim();
+      cleanContent = cleanContent.replace(/^```(?:json)?\s*/i, ""); // Remove opening markdown
+      cleanContent = cleanContent.replace(/\s*```$/i, ""); // Remove closing markdown
+      cleanContent = cleanContent.trim();
+
+      const analysis = JSON.parse(cleanContent);
       return NextResponse.json({
         ...analysis,
         macroContext,
@@ -212,11 +218,18 @@ Return ONLY the JSON object, no markdown or extra text.`;
       // If JSON parsing fails, try to extract JSON from the response
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        const analysis = JSON.parse(jsonMatch[0]);
-        return NextResponse.json({
-          ...analysis,
-          macroContext,
-        });
+        try {
+          let extracted = jsonMatch[0];
+          // Clean any remaining markdown from extracted JSON
+          extracted = extracted.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
+          const analysis = JSON.parse(extracted);
+          return NextResponse.json({
+            ...analysis,
+            macroContext,
+          });
+        } catch (parseError) {
+          console.error("Failed to parse extracted JSON:", parseError);
+        }
       }
 
       // Fallback response

@@ -190,7 +190,12 @@ export default function PerspectiveSelector({
             /* If plain text response */
             <div className="bg-slate-50 dark:bg-slate-700 rounded p-4">
               <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
-                {analysis.content || JSON.stringify(analysis, null, 2)}
+                {analysis.content || (typeof analysis === 'string'
+                  ? analysis
+                      .replace(/^```json\s*/i, '')  // Remove opening markdown code block
+                      .replace(/\s*```$/, '')         // Remove closing markdown code block
+                      .trim()
+                  : JSON.stringify(analysis, null, 2))}
               </p>
             </div>
           )}

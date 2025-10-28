@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useRef, useEffect } from "react";
 import {
   ComposedChart,
   Line,
@@ -47,6 +48,37 @@ const CustomTooltip = ({
 };
 
 export default function BetaChart({ data, ticker }: BetaChartProps) {
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const [containerDimensions, setContainerDimensions] = useState({ width: 0, height: 0 });
+  const [isChartReady, setIsChartReady] = useState(false);
+
+  // Ensure container has proper dimensions before rendering chart
+  useEffect(() => {
+    const container = chartContainerRef.current;
+    if (!container) return;
+
+    const updateDimensions = () => {
+      const rect = container.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        setContainerDimensions({
+          width: rect.width - 32, // Subtract padding (p-4 = 16px each side)
+          height: rect.height - 32,
+        });
+        setIsChartReady(true); // Mark chart as ready after first measurement
+      }
+    };
+
+    // Use setTimeout to ensure DOM is fully ready
+    const timeoutId = setTimeout(updateDimensions, 0);
+    const resizeObserver = new ResizeObserver(updateDimensions);
+    resizeObserver.observe(container);
+
+    return () => {
+      clearTimeout(timeoutId);
+      resizeObserver.disconnect();
+    };
+  }, []);
+
   if (!data || data.length === 0) {
     return (
       <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-8 text-center border border-slate-200 dark:border-slate-700">
@@ -75,18 +107,18 @@ export default function BetaChart({ data, ticker }: BetaChartProps) {
               ⚠️ Insufficient Data for Beta Analysis
             </p>
             <p className="text-sm text-amber-800 dark:text-amber-200">
-              Beta analysis requires at least <strong>30 days of historical data</strong>. Your current dataset has only <strong>{data.length} days</strong>.
+              Beta analysis requires a longer time horizon with historical market data. Your current dataset ({data.length} {data.length === 1 ? "data point" : "data points"}) needs more history to calculate meaningful rolling betas.
             </p>
             <p className="text-sm text-amber-800 dark:text-amber-200">
               To see rolling beta:
             </p>
             <ul className="text-sm text-amber-800 dark:text-amber-200 list-disc list-inside space-y-1 ml-2">
-              <li>For 30-day beta: Analyze at least 30 days of data</li>
-              <li>For 90-day beta: Analyze at least 90 days of data</li>
-              <li>For 250-day beta (most reliable): Analyze at least 250 days of data</li>
+              <li>For 30-day beta: Analyze at least 30 days of historical data</li>
+              <li>For 90-day beta: Analyze at least 90 days of historical data</li>
+              <li>For 250-day beta (most reliable): Analyze at least 250 days of historical data</li>
             </ul>
             <p className="text-xs text-amber-700 dark:text-amber-300 mt-2">
-              Try selecting "Long-Term" or a custom date range with a longer historical period.
+              Try selecting "Long-Term" or a custom date range with a longer historical period. Intraday periods typically won't have sufficient data for beta calculation.
             </p>
           </div>
         </div>
@@ -124,9 +156,14 @@ export default function BetaChart({ data, ticker }: BetaChartProps) {
       </div>
 
       {/* Chart */}
-      <div className="w-full h-96 bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-        <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={data} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+      <div
+        ref={chartContainerRef}
+        className="w-full bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700"
+        style={{ height: '24rem' }}
+      >
+        {isChartReady && containerDimensions.width > 0 && containerDimensions.height > 0 ? (
+          <ResponsiveContainer width={containerDimensions.width} height={containerDimensions.height}>
+            <ComposedChart data={data} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
             <XAxis
               dataKey="date"
@@ -212,8 +249,13 @@ export default function BetaChart({ data, ticker }: BetaChartProps) {
               name="250-day β (Long-term)"
               isAnimationActive={false}
             />
-          </ComposedChart>
-        </ResponsiveContainer>
+            </ComposedChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-slate-500">
+            <p>Loading chart...</p>
+          </div>
+        )}
       </div>
 
       {/* Interpretation */}

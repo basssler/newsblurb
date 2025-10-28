@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import AnalysisView from "@/components/AnalysisView";
+import TickerAutocomplete from "@/components/TickerAutocomplete";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
+import { createAnalysisError, parseApiError, AnalysisError } from "@/types/errors";
 
 interface AnalysisData {
   fundamentals: {
@@ -36,7 +38,8 @@ export default function Home() {
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [loading, setLoading] = useState(false);
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<AnalysisError | null>(null);
+  const [isRetrying, setIsRetrying] = useState(false);
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [customStartDate, setCustomStartDate] = useState<string | null>(null);
@@ -79,7 +82,24 @@ export default function Home() {
         }),
       });
 
-      if (!fetchRes.ok) throw new Error("Failed to fetch data");
+      if (!fetchRes.ok) {
+        const errorData = await fetchRes.json().catch(() => ({}));
+        if (fetchRes.status === 404) {
+          throw createAnalysisError('INVALID_TICKER', errorData.error || 'Ticker not found', {
+            statusCode: 404,
+            suggestion: `Check the ticker symbol and try again (e.g., AAPL, MSFT, TSLA)`,
+          });
+        }
+        if (fetchRes.status === 429) {
+          throw createAnalysisError('RATE_LIMIT', errorData.error || 'Rate limit reached', {
+            statusCode: 429,
+            retryAfter: 60,
+          });
+        }
+        throw createAnalysisError('API_ERROR', errorData.error || 'Failed to fetch market data', {
+          statusCode: fetchRes.status,
+        });
+      }
       const fetchData = await fetchRes.json();
 
       // Analyze technical indicators
@@ -92,10 +112,15 @@ export default function Home() {
         }),
       });
 
-      if (!analyzeRes.ok) throw new Error("Failed to analyze data");
+      if (!analyzeRes.ok) {
+        throw createAnalysisError('API_ERROR', 'Failed to analyze technical indicators', {
+          statusCode: analyzeRes.status,
+          suggestion: 'Try again with a different time period',
+        });
+      }
       const technicals = await analyzeRes.json();
 
-      // Get AI summary with retry logic
+      // Get AI summary with retry logic (non-blocking)
       let aiSummary = undefined;
       let explainAttempts = 0;
       const maxAttempts = 2;
@@ -143,11 +168,23 @@ export default function Home() {
         aiSummary,
       });
       setLastUpdated(new Date());
+      setError(null); // Clear any previous errors
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "An error occurred during analysis"
-      );
-      console.error("Analysis error:", err);
+      let analysisError: AnalysisError;
+
+      if (err instanceof Error && 'type' in err) {
+        // Already a structured error
+        analysisError = err as AnalysisError;
+      } else if (err instanceof TypeError) {
+        // Network error
+        analysisError = createAnalysisError('NETWORK', err.message);
+      } else {
+        // Generic error
+        analysisError = createAnalysisError('API_ERROR', err instanceof Error ? err.message : 'Unknown error');
+      }
+
+      setError(analysisError);
+      console.error("Analysis error:", analysisError);
     } finally {
       setLoading(false);
     }
@@ -181,6 +218,19 @@ export default function Home() {
       await handleAnalyzeInternal("Custom", customStartDate, customEndDate);
     } else {
       await handleAnalyzeInternal(horizon);
+    }
+  };
+
+  const handleRetry = async () => {
+    setIsRetrying(true);
+    try {
+      await handleAnalyzeInternal(
+        horizon,
+        customStartDate || undefined,
+        customEndDate || undefined
+      );
+    } finally {
+      setIsRetrying(false);
     }
   };
 
@@ -221,19 +271,12 @@ export default function Home() {
             {/* Search Card */}
             <div className="w-full max-w-2xl card p-8 md:p-10 shadow-xl">
               <div className="space-y-6">
-                {/* Primary Input */}
-                <div>
-                  <label className="text-label mb-3 block">
-                    Search Stock
-                  </label>
-                  <input
-                    type="text"
-                    value={ticker}
-                    onChange={(e) => setTicker(e.target.value.toUpperCase())}
-                    placeholder="Type ticker (e.g., AAPL, MSFT, TSLA)"
-                    className="input-base w-full text-lg"
-                  />
-                </div>
+                {/* Primary Input - Autocomplete */}
+                <TickerAutocomplete
+                  value={ticker}
+                  onChange={setTicker}
+                  placeholder="Type ticker (e.g., AAPL, MSFT, TSLA)"
+                />
 
                 {/* Time Horizon */}
                 <div>
@@ -373,8 +416,32 @@ export default function Home() {
             {/* Content Area */}
             <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
               {error && (
-                <div className="mb-6 card bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 p-4">
-                  <p className="text-red-800 dark:text-red-200">{error}</p>
+                <div className="mb-6 card bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <h3 className="font-semibold text-red-900 dark:text-red-100 mb-2">
+                        {error.type === 'INVALID_TICKER' && '❌ Ticker Not Found'}
+                        {error.type === 'RATE_LIMIT' && '⏱️ Rate Limit Reached'}
+                        {error.type === 'NETWORK' && '🌐 Connection Error'}
+                        {error.type === 'API_ERROR' && '⚠️ Service Error'}
+                        {error.type === 'TIMEOUT' && '⏳ Analysis Timeout'}
+                        {!['INVALID_TICKER', 'RATE_LIMIT', 'NETWORK', 'API_ERROR', 'TIMEOUT'].includes(error.type) && '❌ Error'}
+                      </h3>
+                      <p className="text-red-800 dark:text-red-200 mb-2">{error.userMessage}</p>
+                      {error.suggestion && (
+                        <p className="text-sm text-red-700 dark:text-red-300">💡 {error.suggestion}</p>
+                      )}
+                    </div>
+                    {error.retryable && (
+                      <button
+                        onClick={handleRetry}
+                        disabled={isRetrying || loading}
+                        className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-slate-400 text-white rounded-lg font-medium transition-colors whitespace-nowrap flex-shrink-0"
+                      >
+                        {isRetrying ? '🔄 Retrying...' : '🔄 Retry'}
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
 

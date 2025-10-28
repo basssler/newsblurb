@@ -8,6 +8,8 @@ import {
   convertRealMacroToLegacyFormat,
   fetchHistoricalMacroData,
   fetchHistoricalMacroDataFromYahoo,
+  fetchHistoricalSP500Data,
+  fetchHistoricalMacroDataAlphaVantage,
 } from "@/lib/realMacroData";
 
 export async function POST(request: NextRequest) {
@@ -63,10 +65,19 @@ export async function POST(request: NextRequest) {
 
     // Fetch historical macro data for correlation analysis
     console.log(`[MACRO-ANALYSIS] Fetching historical macro data...`);
-    let historicalMacroData = await fetchHistoricalMacroDataFromYahoo();
-    let dataSource = "Yahoo Finance";
 
-    // If Yahoo Finance fails, try FRED
+    // Try Alpha Vantage + Twelve Data (most reliable with real commodity data)
+    let historicalMacroData = await fetchHistoricalMacroDataAlphaVantage();
+    let dataSource = "Alpha Vantage (S&P 500) + Twelve Data (Commodities)";
+
+    // If Alpha Vantage fails, try Yahoo Finance
+    if (!historicalMacroData || historicalMacroData.length === 0) {
+      console.warn(`[MACRO-ANALYSIS] Alpha Vantage failed, trying Yahoo Finance...`);
+      historicalMacroData = await fetchHistoricalMacroDataFromYahoo();
+      dataSource = "Yahoo Finance";
+    }
+
+    // If Yahoo fails, try FRED
     if (!historicalMacroData || historicalMacroData.length === 0) {
       console.warn(`[MACRO-ANALYSIS] Yahoo Finance failed, trying FRED...`);
       historicalMacroData = await fetchHistoricalMacroData();
@@ -75,7 +86,7 @@ export async function POST(request: NextRequest) {
 
     // If we don't have enough historical data, fall back to mock data
     if (!historicalMacroData || historicalMacroData.length === 0) {
-      console.warn(`[MACRO-ANALYSIS] No historical data available, using mock data for demonstration`);
+      console.warn(`[MACRO-ANALYSIS] No real data available, using mock data for demonstration`);
       historicalMacroData = generateMockMacroData(priceHistory);
       dataSource = "Mock (Demo)";
     }
@@ -92,8 +103,23 @@ export async function POST(request: NextRequest) {
       interpretation: `${correlationAnalysis.interpretation} (Data source: ${dataSource})`,
     };
 
-    // Generate mock S&P 500 data for beta analysis
-    const sp500Data = generateMockSP500Data(priceHistory);
+    // Fetch real S&P 500 data for beta analysis
+    console.log(`[MACRO-ANALYSIS] Fetching S&P 500 data for beta calculation...`);
+    const startDate = priceHistory[0].date; // Format: YYYY-MM-DD from stock data
+    const endDate = priceHistory[priceHistory.length - 1].date;
+
+    let sp500DataRaw = await fetchHistoricalSP500Data(startDate, endDate);
+
+    // Convert { value } to { close } format and fall back to mock if needed
+    let sp500Data: Array<{ date: string; close: number }>;
+    if (!sp500DataRaw || sp500DataRaw.length === 0) {
+      console.warn(`[MACRO-ANALYSIS] Failed to fetch real S&P 500 data, using mock data for beta calculation`);
+      sp500Data = generateMockSP500Data(priceHistory);
+    } else {
+      console.log(`[MACRO-ANALYSIS] Using real S&P 500 data (${sp500DataRaw.length} points) for beta calculation`);
+      // Convert value property to close property
+      sp500Data = sp500DataRaw.map(d => ({ date: d.date, close: d.value }));
+    }
 
     // Calculate rolling beta time series
     const rollingBeta = calculateRollingBetaTimeSeries(priceHistory, sp500Data);

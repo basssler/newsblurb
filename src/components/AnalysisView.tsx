@@ -205,74 +205,6 @@ export default function AnalysisView({
         </div>
       </div>
 
-      {/* Data Panels Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Fundamentals Card */}
-        <div className="card p-6">
-          <div className="mb-4">
-            <h3 className="text-lg font-bold text-foreground mb-1">Fundamentals</h3>
-            <p className="text-xs text-slate-600 dark:text-slate-400">Financial metrics</p>
-          </div>
-          <div className="space-y-3">
-            {[
-              { label: "P/E Ratio", value: fundamentals.pe.toFixed(1) },
-              { label: "EV/EBITDA", value: fundamentals.evEbitda.toFixed(1) },
-              { label: "EPS Growth", value: fundamentals.epsGrowth.toFixed(1) + "%" },
-              { label: "Dividend Yield", value: fundamentals.dividendYield.toFixed(2) + "%" },
-            ].map((metric) => (
-              <div key={metric.label} className="flex justify-between items-start">
-                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">{metric.label}</span>
-                <span className="text-sm font-bold text-foreground">{metric.value}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Technicals Card */}
-        <div className="card p-6">
-          <div className="mb-4">
-            <h3 className="text-lg font-bold text-foreground mb-1">Technicals</h3>
-            <p className="text-xs text-slate-600 dark:text-slate-400">Momentum & trends</p>
-          </div>
-          <div className="space-y-3">
-            {[
-              { label: "RSI (14)", value: technicals.rsi.toFixed(0) },
-              { label: "SMA 20", value: "$" + technicals.sma20.toFixed(2) },
-              { label: "SMA 50", value: "$" + technicals.sma50.toFixed(2) },
-              { label: "ATR", value: technicals.atr.toFixed(2) },
-            ].map((metric) => (
-              <div key={metric.label} className="flex justify-between items-start">
-                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">{metric.label}</span>
-                <span className="text-sm font-bold text-foreground">{metric.value}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* AI Summary Card */}
-        <div className="card p-6">
-          <div className="mb-4">
-            <h3 className="text-lg font-bold text-foreground mb-1">AI Summary</h3>
-            <p className="text-xs text-slate-600 dark:text-slate-400">Claude's analysis</p>
-          </div>
-          {aiSummary ? (
-            <div className="space-y-3 text-sm">
-              <div>
-                <p className="font-bold text-blue-600 dark:text-blue-400 mb-1">{aiSummary.headline}</p>
-                <p className="text-slate-700 dark:text-slate-300 line-clamp-3">{aiSummary.summary}</p>
-              </div>
-              <button className="text-blue-500 hover:text-blue-600 text-xs font-medium">
-                View Full Analysis →
-              </button>
-            </div>
-          ) : (
-            <div className="text-center py-4">
-              <p className="text-xs text-slate-500 dark:text-slate-400">AI summary unavailable</p>
-            </div>
-          )}
-        </div>
-      </div>
-
       {/* Detailed Tabs */}
       <div className="card overflow-hidden">
         {/* Tab Navigation */}
@@ -475,7 +407,9 @@ export default function AnalysisView({
 
                   <div>
                     <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">Overview</p>
-                    <p className="text-slate-700 dark:text-slate-300 leading-relaxed">{aiSummary.summary}</p>
+                    <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
+                      {aiSummary.summary}
+                    </p>
                   </div>
 
                   <div>

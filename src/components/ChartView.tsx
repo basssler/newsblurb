@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import {
   ComposedChart,
   Line,
@@ -33,16 +33,46 @@ export default function ChartView({
   horizon,
   onPeriodChange,
 }: ChartViewProps) {
+  const chartContainerRef = useRef<HTMLDivElement>(null);
   const [showSMA20, setShowSMA20] = useState(true);
   const [showSMA50, setShowSMA50] = useState(true);
   const [showBollingerBands, setShowBollingerBands] = useState(false);
   const [showSupportResistance, setShowSupportResistance] = useState(false);
+  const [containerDimensions, setContainerDimensions] = useState({ width: 0, height: 0 });
+  const [isChartReady, setIsChartReady] = useState(false);
 
   // Period selector state
   const [selectedPeriod, setSelectedPeriod] = useState<string>(horizon);
   const [customStartDate, setCustomStartDate] = useState<string>("");
   const [customEndDate, setCustomEndDate] = useState<string>("");
   const [isApplyingPeriod, setIsApplyingPeriod] = useState(false);
+
+  // Ensure container has proper dimensions before rendering chart
+  useEffect(() => {
+    const container = chartContainerRef.current;
+    if (!container) return;
+
+    const updateDimensions = () => {
+      const rect = container.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        setContainerDimensions({
+          width: rect.width - 32, // Subtract padding (p-4 = 16px each side)
+          height: rect.height - 32,
+        });
+        setIsChartReady(true); // Mark chart as ready after first measurement
+      }
+    };
+
+    // Use setTimeout to ensure DOM is fully ready
+    const timeoutId = setTimeout(updateDimensions, 0);
+    const resizeObserver = new ResizeObserver(updateDimensions);
+    resizeObserver.observe(container);
+
+    return () => {
+      clearTimeout(timeoutId);
+      resizeObserver.disconnect();
+    };
+  }, []);
 
   // Get min and max dates from data
   const minDate = data.length > 0 ? data[0].date : "";
@@ -305,9 +335,14 @@ export default function ChartView({
       </div>
 
       {/* Chart */}
-      <div className="w-full h-96 bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700 shadow-sm">
-        <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={enhancedData}>
+      <div
+        ref={chartContainerRef}
+        className="w-full bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700 shadow-sm"
+        style={{ height: '24rem' }}
+      >
+        {isChartReady && containerDimensions.width > 0 && containerDimensions.height > 0 ? (
+          <ResponsiveContainer width={containerDimensions.width} height={containerDimensions.height}>
+            <ComposedChart data={enhancedData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
             <XAxis dataKey="date" stroke="#64748b" style={{ fontSize: "12px" }} />
             <YAxis stroke="#64748b" style={{ fontSize: "12px" }} domain={["auto", "auto"]} />
@@ -414,8 +449,13 @@ export default function ChartView({
                 ))}
               </>
             )}
-          </ComposedChart>
-        </ResponsiveContainer>
+            </ComposedChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-slate-500">
+            <p>Loading chart...</p>
+          </div>
+        )}
       </div>
 
       {/* Key Metrics */}
