@@ -4,6 +4,7 @@ import { useState } from "react";
 import AnalysisView from "@/components/AnalysisView";
 import TickerAutocomplete from "@/components/TickerAutocomplete";
 import ProgressStepper from "@/components/ProgressStepper";
+import UserMenu from "@/components/UserMenu";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import { useProgressiveAnalysis } from "@/hooks/useProgressiveAnalysis";
 import { createAnalysisError, parseApiError, AnalysisError } from "@/types/errors";
@@ -497,6 +498,7 @@ export default function Home() {
                   <div className="h-6 w-px bg-slate-300 dark:bg-slate-700" />
                   <h2 className="text-2xl font-bold text-foreground">{ticker}</h2>
                 </div>
+                <UserMenu />
               </div>
             </div>
 
