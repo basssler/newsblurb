@@ -198,7 +198,7 @@ export default function Home() {
       } catch (err) {
         let analysisError: AnalysisError;
 
-        if (err instanceof Error && 'type' in err) {
+        if (err instanceof Error && 'userMessage' in err) {
           analysisError = err as AnalysisError;
         } else if (err instanceof TypeError) {
           analysisError = createAnalysisError('NETWORK', err.message);
