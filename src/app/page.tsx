@@ -3,7 +3,9 @@
 import { useState } from "react";
 import AnalysisView from "@/components/AnalysisView";
 import TickerAutocomplete from "@/components/TickerAutocomplete";
+import ProgressStepper from "@/components/ProgressStepper";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
+import { useProgressiveAnalysis } from "@/hooks/useProgressiveAnalysis";
 import { createAnalysisError, parseApiError, AnalysisError } from "@/types/errors";
 
 interface AnalysisData {
@@ -38,6 +40,7 @@ export default function Home() {
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [loading, setLoading] = useState(false);
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
+  const [partialAnalysisData, setPartialAnalysisData] = useState<Partial<AnalysisData> | null>(null);
   const [error, setError] = useState<AnalysisError | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
@@ -45,6 +48,9 @@ export default function Home() {
   const [customStartDate, setCustomStartDate] = useState<string | null>(null);
   const [customEndDate, setCustomEndDate] = useState<string | null>(null);
   const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
+  const [useProgressiveLoading, setUseProgressiveLoading] = useState(true);
+
+  const progressiveAnalysis = useProgressiveAnalysis();
 
   const handleAnalyzeInternal = async (
     analyzeHorizon?: "Intraday" | "1-Week" | "Long-Term" | string,
@@ -56,9 +62,9 @@ export default function Home() {
       return;
     }
 
-    setLoading(true);
-    setError("");
     setShowAnalysis(true);
+    setError(null);
+    setPartialAnalysisData(null);
 
     // Use provided horizon or fall back to current horizon
     const effectiveHorizon = analyzeHorizon || horizon;
@@ -69,63 +75,83 @@ export default function Home() {
       setCustomEndDate(endDate);
     }
 
-    try {
-      // Fetch fundamental data
-      const fetchRes = await fetch("/api/fetch", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ticker,
-          horizon: effectiveHorizon,
-          startDate: startDate || null,
-          endDate: endDate || null,
-        }),
-      });
+    if (useProgressiveLoading) {
+      // Progressive loading mode
+      progressiveAnalysis.startAnalysis();
+      setLoading(true);
 
-      if (!fetchRes.ok) {
-        const errorData = await fetchRes.json().catch(() => ({}));
-        if (fetchRes.status === 404) {
-          throw createAnalysisError('INVALID_TICKER', errorData.error || 'Ticker not found', {
-            statusCode: 404,
-            suggestion: `Check the ticker symbol and try again (e.g., AAPL, MSFT, TSLA)`,
-          });
-        }
-        if (fetchRes.status === 429) {
-          throw createAnalysisError('RATE_LIMIT', errorData.error || 'Rate limit reached', {
-            statusCode: 429,
-            retryAfter: 60,
-          });
-        }
-        throw createAnalysisError('API_ERROR', errorData.error || 'Failed to fetch market data', {
-          statusCode: fetchRes.status,
+      try {
+        // PHASE 1: Fetch fundamental data (critical)
+        progressiveAnalysis.updatePhaseProgress('fetching', 25);
+        const fetchRes = await fetch("/api/fetch", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ticker,
+            horizon: effectiveHorizon,
+            startDate: startDate || null,
+            endDate: endDate || null,
+          }),
         });
-      }
-      const fetchData = await fetchRes.json();
 
-      // Analyze technical indicators
-      const analyzeRes = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        if (!fetchRes.ok) {
+          const errorData = await fetchRes.json().catch(() => ({}));
+          if (fetchRes.status === 404) {
+            throw createAnalysisError('INVALID_TICKER', errorData.error || 'Ticker not found', {
+              statusCode: 404,
+              suggestion: `Check the ticker symbol and try again (e.g., AAPL, MSFT, TSLA)`,
+            });
+          }
+          if (fetchRes.status === 429) {
+            throw createAnalysisError('RATE_LIMIT', errorData.error || 'Rate limit reached', {
+              statusCode: 429,
+              retryAfter: 60,
+            });
+          }
+          throw createAnalysisError('API_ERROR', errorData.error || 'Failed to fetch market data', {
+            statusCode: fetchRes.status,
+          });
+        }
+        const fetchData = await fetchRes.json();
+        progressiveAnalysis.updatePhaseProgress('fetching', 100);
+        progressiveAnalysis.completePhase('fetching');
+
+        // Show price chart immediately
+        setPartialAnalysisData({
           priceHistory: fetchData.priceHistory,
-          ticker,
-        }),
-      });
-
-      if (!analyzeRes.ok) {
-        throw createAnalysisError('API_ERROR', 'Failed to analyze technical indicators', {
-          statusCode: analyzeRes.status,
-          suggestion: 'Try again with a different time period',
+          fundamentals: fetchData.fundamentals,
         });
-      }
-      const technicals = await analyzeRes.json();
 
-      // Get AI summary with retry logic (non-blocking)
-      let aiSummary = undefined;
-      let explainAttempts = 0;
-      const maxAttempts = 2;
+        // PHASE 2: Analyze technical indicators (critical)
+        progressiveAnalysis.nextPhase('analyzing');
+        const analyzeRes = await fetch("/api/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            priceHistory: fetchData.priceHistory,
+            ticker,
+          }),
+        });
 
-      while (explainAttempts < maxAttempts && !aiSummary) {
+        if (!analyzeRes.ok) {
+          throw createAnalysisError('API_ERROR', 'Failed to analyze technical indicators', {
+            statusCode: analyzeRes.status,
+            suggestion: 'Try again with a different time period',
+          });
+        }
+        const technicals = await analyzeRes.json();
+        progressiveAnalysis.completePhase('analyzing');
+
+        // Update with technicals (now chart is fully interactive)
+        setPartialAnalysisData({
+          priceHistory: fetchData.priceHistory,
+          fundamentals: fetchData.fundamentals,
+          technicals,
+        });
+
+        // PHASE 3: Get AI summary (non-blocking)
+        progressiveAnalysis.nextPhase('explaining');
+        let aiSummary = undefined;
         try {
           const explainRes = await fetch("/api/explain", {
             method: "POST",
@@ -140,53 +166,114 @@ export default function Home() {
 
           if (explainRes.ok) {
             aiSummary = await explainRes.json();
-          } else {
-            console.warn(
-              `AI summary fetch failed (attempt ${explainAttempts + 1}):`,
-              explainRes.status
-            );
           }
         } catch (err) {
-          console.warn(
-            `AI summary fetch error (attempt ${explainAttempts + 1}):`,
-            err
-          );
+          console.warn("AI summary fetch failed:", err);
+        }
+        progressiveAnalysis.completePhase('explaining');
+
+        // Update with AI summary
+        setPartialAnalysisData({
+          priceHistory: fetchData.priceHistory,
+          fundamentals: fetchData.fundamentals,
+          technicals,
+          aiSummary,
+        });
+
+        // PHASE 4: Fetch macro analysis (non-blocking)
+        progressiveAnalysis.nextPhase('macro');
+        // Macro analysis is fetched in AnalysisView via useEffect
+        progressiveAnalysis.completePhase('macro');
+
+        // Complete analysis and show full data
+        setAnalysisData({
+          fundamentals: fetchData.fundamentals,
+          technicals,
+          priceHistory: fetchData.priceHistory,
+          aiSummary,
+        });
+        progressiveAnalysis.completeAnalysis();
+        setLastUpdated(new Date());
+        setPartialAnalysisData(null); // Clear partial data
+      } catch (err) {
+        let analysisError: AnalysisError;
+
+        if (err instanceof Error && 'type' in err) {
+          analysisError = err as AnalysisError;
+        } else if (err instanceof TypeError) {
+          analysisError = createAnalysisError('NETWORK', err.message);
+        } else {
+          analysisError = createAnalysisError('API_ERROR', err instanceof Error ? err.message : 'Unknown error');
         }
 
-        explainAttempts++;
+        progressiveAnalysis.setPhaseError(progressiveAnalysis.state.currentPhase, analysisError.userMessage);
+        setError(analysisError);
+        console.error("Analysis error:", analysisError);
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // Legacy non-progressive mode (fallback)
+      setLoading(true);
+      try {
+        const fetchRes = await fetch("/api/fetch", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ticker,
+            horizon: effectiveHorizon,
+            startDate: startDate || null,
+            endDate: endDate || null,
+          }),
+        });
 
-        // Add small delay before retry
-        if (explainAttempts < maxAttempts && !aiSummary) {
-          await new Promise((resolve) => setTimeout(resolve, 500));
+        if (!fetchRes.ok) throw new Error("Failed to fetch data");
+        const fetchData = await fetchRes.json();
+
+        const analyzeRes = await fetch("/api/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            priceHistory: fetchData.priceHistory,
+            ticker,
+          }),
+        });
+
+        if (!analyzeRes.ok) throw new Error("Failed to analyze data");
+        const technicals = await analyzeRes.json();
+
+        let aiSummary = undefined;
+        try {
+          const explainRes = await fetch("/api/explain", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              ticker,
+              fundamentals: fetchData.fundamentals,
+              technicals,
+              priceHistory: fetchData.priceHistory,
+            }),
+          });
+
+          if (explainRes.ok) {
+            aiSummary = await explainRes.json();
+          }
+        } catch (err) {
+          console.warn("AI summary failed:", err);
         }
+
+        setAnalysisData({
+          fundamentals: fetchData.fundamentals,
+          technicals,
+          priceHistory: fetchData.priceHistory,
+          aiSummary,
+        });
+        setLastUpdated(new Date());
+      } catch (err) {
+        setError(createAnalysisError('API_ERROR', err instanceof Error ? err.message : 'Unknown error'));
+      } finally {
+        setLoading(false);
       }
-
-      setAnalysisData({
-        fundamentals: fetchData.fundamentals,
-        technicals,
-        priceHistory: fetchData.priceHistory,
-        aiSummary,
-      });
-      setLastUpdated(new Date());
-      setError(null); // Clear any previous errors
-    } catch (err) {
-      let analysisError: AnalysisError;
-
-      if (err instanceof Error && 'type' in err) {
-        // Already a structured error
-        analysisError = err as AnalysisError;
-      } else if (err instanceof TypeError) {
-        // Network error
-        analysisError = createAnalysisError('NETWORK', err.message);
-      } else {
-        // Generic error
-        analysisError = createAnalysisError('API_ERROR', err instanceof Error ? err.message : 'Unknown error');
-      }
-
-      setError(analysisError);
-      console.error("Analysis error:", analysisError);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -445,7 +532,33 @@ export default function Home() {
                 </div>
               )}
 
-              {loading ? (
+              {loading && useProgressiveLoading ? (
+                // Show progress stepper with progressive updates
+                <div className="space-y-6">
+                  <ProgressStepper state={progressiveAnalysis.state} ticker={ticker} />
+
+                  {/* Show partial data as it becomes available */}
+                  {partialAnalysisData && partialAnalysisData.priceHistory && partialAnalysisData.technicals && (
+                    <div className="mt-8">
+                      <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                        📊 Loading analysis details below...
+                      </p>
+                      <AnalysisView
+                        ticker={ticker}
+                        horizon={horizon}
+                        data={partialAnalysisData as AnalysisData}
+                        onRefresh={handleRefresh}
+                        isRefreshing={loading}
+                        lastUpdated={lastUpdated}
+                        autoRefreshEnabled={autoRefreshEnabled}
+                        onToggleAutoRefresh={setAutoRefreshEnabled}
+                        onPeriodChange={handlePeriodChange}
+                      />
+                    </div>
+                  )}
+                </div>
+              ) : loading ? (
+                // Fallback for legacy mode
                 <div className="card p-12 text-center">
                   <div className="inline-block w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin mb-4" />
                   <p className="text-slate-600 dark:text-slate-400">Analyzing your stock...</p>
