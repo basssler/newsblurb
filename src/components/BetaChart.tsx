@@ -93,6 +93,11 @@ export default function BetaChart({ data, ticker }: BetaChartProps) {
   );
 
   if (!hasAnyBeta) {
+    // Calculate how many data points we have and what's needed
+    const daysOfData = data.length;
+    const minDaysNeeded = daysOfData < 30 ? 30 : daysOfData < 90 ? 90 : 250;
+    const isInsufficientData = daysOfData < 30;
+
     return (
       <div className="space-y-4">
         <div>
@@ -106,19 +111,32 @@ export default function BetaChart({ data, ticker }: BetaChartProps) {
             <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
               ⚠️ Insufficient Data for Beta Analysis
             </p>
-            <p className="text-sm text-amber-800 dark:text-amber-200">
-              Beta analysis requires a longer time horizon with historical market data. Your current dataset ({data.length} {data.length === 1 ? "data point" : "data points"}) needs more history to calculate meaningful rolling betas.
-            </p>
-            <p className="text-sm text-amber-800 dark:text-amber-200">
-              To see rolling beta:
-            </p>
-            <ul className="text-sm text-amber-800 dark:text-amber-200 list-disc list-inside space-y-1 ml-2">
-              <li>For 30-day beta: Analyze at least 30 days of historical data</li>
-              <li>For 90-day beta: Analyze at least 90 days of historical data</li>
-              <li>For 250-day beta (most reliable): Analyze at least 250 days of historical data</li>
-            </ul>
+            {isInsufficientData ? (
+              <>
+                <p className="text-sm text-amber-800 dark:text-amber-200">
+                  Beta analysis requires at least 30 days of historical data. Your current dataset has only {daysOfData} {daysOfData === 1 ? "data point" : "data points"}.
+                </p>
+                <p className="text-sm text-amber-800 dark:text-amber-200">
+                  To see rolling beta:
+                </p>
+                <ul className="text-sm text-amber-800 dark:text-amber-200 list-disc list-inside space-y-1 ml-2">
+                  <li>For 30-day beta: Select "1-Week" or longer period (at least 30 days)</li>
+                  <li>For 90-day beta: Select "Long-Term" or custom range (at least 90 days)</li>
+                  <li>For 250-day beta (most reliable): Use custom date range with 250+ days of history</li>
+                </ul>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-amber-800 dark:text-amber-200">
+                  Beta data is still loading or calculating for your {daysOfData}-day dataset. Please wait a moment.
+                </p>
+              </>
+            )}
             <p className="text-xs text-amber-700 dark:text-amber-300 mt-2">
-              Try selecting "Long-Term" or a custom date range with a longer historical period. Intraday periods typically won't have sufficient data for beta calculation.
+              {isInsufficientData
+                ? "Try selecting a longer time period or entering a custom date range with more historical data."
+                : "If the issue persists, try refreshing the analysis."
+              }
             </p>
           </div>
         </div>

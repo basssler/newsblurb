@@ -341,7 +341,7 @@ export default function ChartView({
         style={{ height: '24rem' }}
       >
         {isChartReady && containerDimensions.width > 0 && containerDimensions.height > 0 ? (
-          <ResponsiveContainer width={containerDimensions.width} height={containerDimensions.height}>
+          <ResponsiveContainer width={Math.max(containerDimensions.width, 300)} height={Math.max(containerDimensions.height, 300)}>
             <ComposedChart data={enhancedData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
             <XAxis dataKey="date" stroke="#64748b" style={{ fontSize: "12px" }} />

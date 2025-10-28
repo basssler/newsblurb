@@ -191,10 +191,24 @@ export default function PerspectiveSelector({
             <div className="bg-slate-50 dark:bg-slate-700 rounded p-4">
               <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
                 {analysis.content || (typeof analysis === 'string'
-                  ? analysis
-                      .replace(/^```json\s*/i, '')  // Remove opening markdown code block
-                      .replace(/\s*```$/, '')         // Remove closing markdown code block
-                      .trim()
+                  ? (() => {
+                      try {
+                        // Try to parse as JSON first (remove markdown code blocks if present)
+                        const cleaned = analysis
+                          .replace(/^```json\s*/i, '')  // Remove opening markdown code block
+                          .replace(/\s*```$/, '')         // Remove closing markdown code block
+                          .trim();
+                        const parsed = JSON.parse(cleaned);
+                        // If successful, return only the headline or summary
+                        return parsed.headline || parsed.summary || JSON.stringify(parsed, null, 2);
+                      } catch {
+                        // If JSON parsing fails, return the cleaned string
+                        return analysis
+                          .replace(/^```json\s*/i, '')
+                          .replace(/\s*```$/, '')
+                          .trim();
+                      }
+                    })()
                   : JSON.stringify(analysis, null, 2))}
               </p>
             </div>
