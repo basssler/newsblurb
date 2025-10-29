@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 import ChartView from "./ChartView";
 import MacroInsights from "./MacroInsights";
 import CorrelationHeatmap from "./CorrelationHeatmap";
@@ -9,7 +10,9 @@ import BetaChart from "./BetaChart";
 import RegimeTable from "./RegimeTable";
 import MacroEventCalendar from "./MacroEventCalendar";
 import PerspectiveSelector from "./PerspectiveSelector";
+import AlertCreator from "./AlertCreator";
 import { useFavorites } from "@/hooks/useFavorites";
+import { useAlerts } from "@/hooks/useAlerts";
 import { CorrelationAnalysis } from "@/lib/macro/rollingCorrelations";
 import { RollingBetaPoint } from "@/lib/macro/betaRegression";
 import { RegimeAnalysis } from "@/lib/macro/regimeDetection";
@@ -74,6 +77,7 @@ export default function AnalysisView({
 }: AnalysisViewProps) {
   const { data: session } = useSession();
   const { isFavorite, addFavorite, removeFavorite } = useFavorites();
+  const { checkAlerts } = useAlerts();
   const [activeTab, setActiveTab] = useState<"fundamentals" | "technicals" | "charts" | "macro" | "summary">("charts");
   const [correlationAnalysis, setCorrelationAnalysis] = useState<CorrelationAnalysis | null>(null);
   const [correlationLoading, setCorrelationLoading] = useState(false);
@@ -91,6 +95,16 @@ export default function AnalysisView({
       addFavorite(ticker);
     }
   };
+
+  // Check alerts after data updates
+  useEffect(() => {
+    if (data?.technicals) {
+      checkAlerts(ticker, {
+        rsi: data.technicals.rsi,
+        currentPrice: data.technicals.currentPrice,
+      }).catch(err => console.log("[AnalysisView] Alert check error:", err));
+    }
+  }, [ticker, data?.technicals, checkAlerts]);
 
   const formatLastUpdated = (date: Date | null) => {
     if (!date) return "Never";
@@ -188,6 +202,13 @@ export default function AnalysisView({
             >
               {isInWatchlist ? "⭐" : "☆"} {isInWatchlist ? "In Watchlist" : "Add to Watchlist"}
             </button>
+            <Link
+              href="/alerts"
+              className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg font-medium transition-colors text-sm flex items-center gap-2"
+              title="View all alerts"
+            >
+              🔔 Alerts
+            </Link>
             <button
               onClick={onRefresh}
               disabled={isRefreshing}
@@ -306,6 +327,25 @@ export default function AnalysisView({
                     <p className="text-3xl font-bold text-slate-900 dark:text-white">{metric.value}</p>
                   </div>
                 ))}
+              </div>
+
+              {/* Alert Creator */}
+              <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
+                <h3 className="text-lg font-bold text-foreground mb-3">Set Alerts</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                  Create alerts for this stock. You'll be notified when your conditions are met.
+                </p>
+                <AlertCreator
+                  ticker={ticker}
+                  currentRSI={technicals.rsi}
+                  currentPrice={technicals.currentPrice}
+                />
+                <Link
+                  href="/alerts"
+                  className="inline-block mt-4 text-sm text-blue-500 hover:text-blue-600 font-medium"
+                >
+                  View all alerts →
+                </Link>
               </div>
             </div>
           )}
