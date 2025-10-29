@@ -129,7 +129,7 @@ export function resetCacheStats(): void {
  * Format: analysis:{ticker}:{horizon}:{period}
  */
 export function getCacheKey(
-  type: "fetch" | "analyze" | "macro" | "explain",
+  type: "fetch" | "analyze" | "macro" | "explain" | "news",
   ticker: string,
   horizon?: string
 ): string {
@@ -155,6 +155,10 @@ export const CACHE_CONFIG = {
   explain: {
     ttl: 7 * 24 * 60 * 60, // 7 days - AI responses don't change
     description: "AI explanation",
+  },
+  news: {
+    ttl: 24 * 60 * 60, // 24 hours - news articles update daily
+    description: "Stock news with AI analysis",
   },
 };
 
