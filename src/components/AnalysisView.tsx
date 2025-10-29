@@ -11,6 +11,8 @@ import RegimeTable from "./RegimeTable";
 import MacroEventCalendar from "./MacroEventCalendar";
 import PerspectiveSelector from "./PerspectiveSelector";
 import AlertCreator from "./AlertCreator";
+import PDFExportButton from "./PDFExportButton";
+import ShareButton from "./ShareButton";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useAlerts } from "@/hooks/useAlerts";
 import { CorrelationAnalysis } from "@/lib/macro/rollingCorrelations";
@@ -28,7 +30,7 @@ interface MacroContext {
   tradeIdeas: string[];
 }
 
-interface AnalysisData {
+export interface AnalysisData {
   fundamentals: {
     pe: number;
     evEbitda: number;
@@ -173,7 +175,7 @@ export default function AnalysisView({
     <div className="space-y-6">
       {/* Refresh Controls */}
       {onRefresh && (
-        <div className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 flex items-center justify-between">
+        <div className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
             <span className="text-sm text-slate-600 dark:text-slate-400">
               Last updated: <span className="font-medium text-foreground">{formatLastUpdated(lastUpdated)}</span>
@@ -209,6 +211,8 @@ export default function AnalysisView({
             >
               🔔 Alerts
             </Link>
+            <PDFExportButton ticker={ticker} elementId="analysis-export" />
+            <ShareButton ticker={ticker} horizon={horizon} data={data} />
             <button
               onClick={onRefresh}
               disabled={isRefreshing}
@@ -227,6 +231,8 @@ export default function AnalysisView({
         </div>
       )}
 
+      {/* Exportable Analysis Content */}
+      <div id="analysis-export" className="space-y-6">
       {/* Charts (Primary) */}
       <div className="card overflow-hidden">
         <div className="p-6">
@@ -527,6 +533,8 @@ export default function AnalysisView({
           )}
         </div>
       </div>
+      </div>
+      {/* End of Exportable Content */}
     </div>
   );
 }
