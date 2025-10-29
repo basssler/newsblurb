@@ -7,6 +7,7 @@ import ProgressStepper from "@/components/ProgressStepper";
 import UserMenu from "@/components/UserMenu";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import { useProgressiveAnalysis } from "@/hooks/useProgressiveAnalysis";
+import { useAnalysisHistory } from "@/hooks/useAnalysisHistory";
 import { createAnalysisError, parseApiError, AnalysisError } from "@/types/errors";
 
 interface AnalysisData {
@@ -33,9 +34,27 @@ interface AnalysisData {
 }
 
 export default function Home() {
+  // Get default horizon from localStorage (settings), fallback to "1-Week"
+  const getDefaultHorizon = (): "Intraday" | "1-Week" | "Long-Term" => {
+    if (typeof window !== "undefined") {
+      const settings = localStorage.getItem("newsblurb_settings");
+      if (settings) {
+        try {
+          const parsed = JSON.parse(settings);
+          if (parsed.defaultHorizon && ["Intraday", "1-Week", "Long-Term"].includes(parsed.defaultHorizon)) {
+            return parsed.defaultHorizon;
+          }
+        } catch (error) {
+          console.error("Failed to parse settings:", error);
+        }
+      }
+    }
+    return "1-Week";
+  };
+
   const [ticker, setTicker] = useState("");
   const [horizon, setHorizon] = useState<"Intraday" | "1-Week" | "Long-Term">(
-    "1-Week"
+    getDefaultHorizon()
   );
   const [newsBlurb, setNewsBlurb] = useState("");
   const [showAnalysis, setShowAnalysis] = useState(false);
@@ -52,6 +71,7 @@ export default function Home() {
   const [useProgressiveLoading, setUseProgressiveLoading] = useState(true);
 
   const progressiveAnalysis = useProgressiveAnalysis();
+  const { addToHistory } = useAnalysisHistory();
 
   const handleAnalyzeInternal = async (
     analyzeHorizon?: "Intraday" | "1-Week" | "Long-Term" | string,
@@ -270,6 +290,14 @@ export default function Home() {
           aiSummary,
         });
         setLastUpdated(new Date());
+
+        // Auto-save to history
+        addToHistory({
+          ticker,
+          horizon: effectiveHorizon as "Intraday" | "1-Week" | "Long-Term",
+          timestamp: new Date().toISOString(),
+          aiSummary,
+        });
       } catch (err) {
         setError(createAnalysisError('API_ERROR', err instanceof Error ? err.message : 'Unknown error'));
       } finally {

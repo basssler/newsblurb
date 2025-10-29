@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { useState, useEffect } from "react";
+import { useDarkMode } from "@/hooks/useDarkMode";
 
 interface Settings {
   darkMode: boolean;
@@ -21,6 +22,7 @@ const DEFAULT_SETTINGS: Settings = {
 
 export default function SettingsPage() {
   const { data: session, status } = useSession();
+  const { darkMode, setDarkMode } = useDarkMode();
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [mounted, setMounted] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -36,7 +38,12 @@ export default function SettingsPage() {
       const saved = localStorage.getItem("newsblurb_settings");
       if (saved) {
         try {
-          setSettings(JSON.parse(saved));
+          const parsedSettings = JSON.parse(saved);
+          setSettings(parsedSettings);
+          // Apply dark mode if saved
+          if (parsedSettings.darkMode !== darkMode) {
+            setDarkMode(parsedSettings.darkMode);
+          }
         } catch (error) {
           console.error("Failed to parse settings:", error);
         }
@@ -58,6 +65,10 @@ export default function SettingsPage() {
     value: boolean | string
   ) => {
     setSettings({ ...settings, [key]: value });
+    // Apply dark mode immediately if darkMode setting changes
+    if (key === "darkMode") {
+      setDarkMode(value as boolean);
+    }
   };
 
   const handleReset = () => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import ChartView from "./ChartView";
 import MacroInsights from "./MacroInsights";
 import CorrelationHeatmap from "./CorrelationHeatmap";
@@ -8,6 +9,7 @@ import BetaChart from "./BetaChart";
 import RegimeTable from "./RegimeTable";
 import MacroEventCalendar from "./MacroEventCalendar";
 import PerspectiveSelector from "./PerspectiveSelector";
+import { useFavorites } from "@/hooks/useFavorites";
 import { CorrelationAnalysis } from "@/lib/macro/rollingCorrelations";
 import { RollingBetaPoint } from "@/lib/macro/betaRegression";
 import { RegimeAnalysis } from "@/lib/macro/regimeDetection";
@@ -70,9 +72,25 @@ export default function AnalysisView({
   onToggleAutoRefresh,
   onPeriodChange,
 }: AnalysisViewProps) {
+  const { data: session } = useSession();
+  const { isFavorite, addFavorite, removeFavorite } = useFavorites();
   const [activeTab, setActiveTab] = useState<"fundamentals" | "technicals" | "charts" | "macro" | "summary">("charts");
   const [correlationAnalysis, setCorrelationAnalysis] = useState<CorrelationAnalysis | null>(null);
   const [correlationLoading, setCorrelationLoading] = useState(false);
+
+  const isInWatchlist = isFavorite(ticker);
+
+  const handleToggleWatchlist = () => {
+    if (!session) {
+      alert("Please sign in to save favorites");
+      return;
+    }
+    if (isInWatchlist) {
+      removeFavorite(ticker);
+    } else {
+      addFavorite(ticker);
+    }
+  };
 
   const formatLastUpdated = (date: Date | null) => {
     if (!date) return "Never";
@@ -159,6 +177,17 @@ export default function AnalysisView({
                 Auto-refresh (30 min)
               </span>
             </label>
+            <button
+              onClick={handleToggleWatchlist}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm flex items-center gap-2 ${
+                isInWatchlist
+                  ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 hover:bg-yellow-200 dark:hover:bg-yellow-900/50"
+                  : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600"
+              }`}
+              title={isInWatchlist ? "Remove from watchlist" : "Add to watchlist"}
+            >
+              {isInWatchlist ? "⭐" : "☆"} {isInWatchlist ? "In Watchlist" : "Add to Watchlist"}
+            </button>
             <button
               onClick={onRefresh}
               disabled={isRefreshing}
