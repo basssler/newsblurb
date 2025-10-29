@@ -272,5 +272,76 @@ export function generateMockMacroData(
         value: 4500 + i * 2 + Math.sin(i * 0.02) * 200 + Math.random() * 100,
       })),
     },
+    // NEW: 10 additional indicators
+    {
+      name: "Brent Oil",
+      values: dates.map((date, i) => ({
+        date,
+        value: 85 + Math.sin(i * 0.04) * 15 + Math.random() * 5,
+      })),
+    },
+    {
+      name: "Natural Gas",
+      values: dates.map((date, i) => ({
+        date,
+        value: 3 + Math.cos(i * 0.03) * 1 + Math.random() * 0.5,
+      })),
+    },
+    {
+      name: "Silver",
+      values: dates.map((date, i) => ({
+        date,
+        value: 25 + Math.sin(i * 0.03) * 3 + Math.random() * 1,
+      })),
+    },
+    {
+      name: "Copper",
+      values: dates.map((date, i) => ({
+        date,
+        value: 4 + Math.cos(i * 0.04) * 0.5 + Math.random() * 0.2,
+      })),
+    },
+    {
+      name: "USD/EUR",
+      values: dates.map((date, i) => ({
+        date,
+        value: 0.92 + Math.sin(i * 0.02) * 0.03 + Math.random() * 0.01,
+      })),
+    },
+    {
+      name: "USD/JPY",
+      values: dates.map((date, i) => ({
+        date,
+        value: 150 + Math.cos(i * 0.03) * 10 + Math.random() * 5,
+      })),
+    },
+    {
+      name: "Corp Bond Spread",
+      values: dates.map((date, i) => ({
+        date,
+        value: 120 + Math.sin(i * 0.02) * 30 + Math.random() * 10,
+      })),
+    },
+    {
+      name: "Inflation Rate",
+      values: dates.map((date, i) => ({
+        date,
+        value: 3.5 + Math.cos(i * 0.01) * 1 + Math.random() * 0.5,
+      })),
+    },
+    {
+      name: "Fed Funds Rate",
+      values: dates.map((date, i) => ({
+        date,
+        value: 5.5 + Math.sin(i * 0.01) * 0.5 + Math.random() * 0.2,
+      })),
+    },
+    {
+      name: "Unemployment Rate",
+      values: dates.map((date, i) => ({
+        date,
+        value: 4 + Math.cos(i * 0.02) * 0.5 + Math.random() * 0.2,
+      })),
+    },
   ];
 }

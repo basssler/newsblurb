@@ -24,6 +24,17 @@ export interface RealMacroData {
   oil: RealMacroDataPoint;
   gold: RealMacroDataPoint;
   sp500: RealMacroDataPoint;
+  // NEW: 10 additional indicators
+  brentOil: RealMacroDataPoint;
+  naturalGas: RealMacroDataPoint;
+  silver: RealMacroDataPoint;
+  copper: RealMacroDataPoint;
+  usdEur: RealMacroDataPoint;
+  usdJpy: RealMacroDataPoint;
+  corpSpread: RealMacroDataPoint;
+  inflationRate: RealMacroDataPoint;
+  fedFundsRate: RealMacroDataPoint;
+  unemploymentRate: RealMacroDataPoint;
   timestamp: Date;
   allSuccess: boolean;
 }
@@ -69,16 +80,31 @@ export async function fetchRealMacroData(): Promise<RealMacroData> {
 
   console.log("[realMacroData] Cache MISS - fetching from APIs");
 
-  // Fetch all in parallel
-  const [dxyResult, vixResult, yield10yResult, oilResult, goldResult, sp500Result] =
-    await Promise.allSettled([
-      fetchDXY(),
-      fetchVIX(),
-      fetch10YYield(),
-      fetchOil(),
-      fetchGold(),
-      fetchSP500(),
-    ]);
+  // Fetch all 16 indicators in parallel
+  const [
+    dxyResult, vixResult, yield10yResult, oilResult, goldResult, sp500Result,
+    brentOilResult, naturalGasResult, silverResult, copperResult,
+    usdEurResult, usdJpyResult, corpSpreadResult, inflationRateResult,
+    fedFundsRateResult, unemploymentRateResult
+  ] = await Promise.allSettled([
+    fetchDXY(),
+    fetchVIX(),
+    fetch10YYield(),
+    fetchOil(),
+    fetchGold(),
+    fetchSP500(),
+    // NEW: 10 additional indicators
+    fetchBrentOil(),
+    fetchNaturalGas(),
+    fetchSilver(),
+    fetchCopper(),
+    fetchUSDEUR(),
+    fetchUSDJPY(),
+    fetchCorpSpread(),
+    fetchInflationRate(),
+    fetchFedFundsRate(),
+    fetchUnemploymentRate(),
+  ]);
 
   const result: RealMacroData = {
     dxy: dxyResult.status === "fulfilled" ? dxyResult.value : { name: "DXY", value: null, source: "FRED", fetchedAt: new Date(), error: "Failed to fetch" },
@@ -87,8 +113,24 @@ export async function fetchRealMacroData(): Promise<RealMacroData> {
     oil: oilResult.status === "fulfilled" ? oilResult.value : { name: "Oil (WTI)", value: null, source: "FRED", fetchedAt: new Date(), error: "Failed to fetch" },
     gold: goldResult.status === "fulfilled" ? goldResult.value : { name: "Gold", value: null, source: "FRED", fetchedAt: new Date(), error: "Failed to fetch" },
     sp500: sp500Result.status === "fulfilled" ? sp500Result.value : { name: "S&P 500", value: null, source: "Twelve Data", fetchedAt: new Date(), error: "Failed to fetch" },
+    // NEW: 10 additional indicators
+    brentOil: brentOilResult.status === "fulfilled" ? brentOilResult.value : { name: "Brent Oil", value: null, source: "FRED", fetchedAt: new Date(), error: "Failed to fetch" },
+    naturalGas: naturalGasResult.status === "fulfilled" ? naturalGasResult.value : { name: "Natural Gas", value: null, source: "FRED", fetchedAt: new Date(), error: "Failed to fetch" },
+    silver: silverResult.status === "fulfilled" ? silverResult.value : { name: "Silver", value: null, source: "FRED", fetchedAt: new Date(), error: "Failed to fetch" },
+    copper: copperResult.status === "fulfilled" ? copperResult.value : { name: "Copper", value: null, source: "FRED", fetchedAt: new Date(), error: "Failed to fetch" },
+    usdEur: usdEurResult.status === "fulfilled" ? usdEurResult.value : { name: "USD/EUR", value: null, source: "FRED", fetchedAt: new Date(), error: "Failed to fetch" },
+    usdJpy: usdJpyResult.status === "fulfilled" ? usdJpyResult.value : { name: "USD/JPY", value: null, source: "FRED", fetchedAt: new Date(), error: "Failed to fetch" },
+    corpSpread: corpSpreadResult.status === "fulfilled" ? corpSpreadResult.value : { name: "Corp Bond Spread", value: null, source: "FRED", fetchedAt: new Date(), error: "Failed to fetch" },
+    inflationRate: inflationRateResult.status === "fulfilled" ? inflationRateResult.value : { name: "Inflation Rate", value: null, source: "FRED", fetchedAt: new Date(), error: "Failed to fetch" },
+    fedFundsRate: fedFundsRateResult.status === "fulfilled" ? fedFundsRateResult.value : { name: "Fed Funds Rate", value: null, source: "FRED", fetchedAt: new Date(), error: "Failed to fetch" },
+    unemploymentRate: unemploymentRateResult.status === "fulfilled" ? unemploymentRateResult.value : { name: "Unemployment Rate", value: null, source: "FRED", fetchedAt: new Date(), error: "Failed to fetch" },
     timestamp: new Date(),
-    allSuccess: [dxyResult, vixResult, yield10yResult, oilResult, goldResult, sp500Result].every(r => r.status === "fulfilled" && !r.value?.error),
+    allSuccess: [
+      dxyResult, vixResult, yield10yResult, oilResult, goldResult, sp500Result,
+      brentOilResult, naturalGasResult, silverResult, copperResult,
+      usdEurResult, usdJpyResult, corpSpreadResult, inflationRateResult,
+      fedFundsRateResult, unemploymentRateResult
+    ].every(r => r.status === "fulfilled" && !r.value?.error),
   };
 
   // Cache for 24 hours (macro data updates daily)
@@ -101,6 +143,16 @@ export async function fetchRealMacroData(): Promise<RealMacroData> {
     oil: result.oil.value,
     gold: result.gold.value,
     sp500: result.sp500.value,
+    brentOil: result.brentOil.value,
+    naturalGas: result.naturalGas.value,
+    silver: result.silver.value,
+    copper: result.copper.value,
+    usdEur: result.usdEur.value,
+    usdJpy: result.usdJpy.value,
+    corpSpread: result.corpSpread.value,
+    inflationRate: result.inflationRate.value,
+    fedFundsRate: result.fedFundsRate.value,
+    unemploymentRate: result.unemploymentRate.value,
   });
 
   return result;
@@ -349,6 +401,426 @@ async function fetchGold(): Promise<RealMacroDataPoint> {
 }
 
 /**
+ * Fetch Brent Oil Price from FRED
+ * Series: DCOILBRENTEU (Crude Oil, Brent)
+ */
+async function fetchBrentOil(): Promise<RealMacroDataPoint> {
+  try {
+    const fredKey = process.env.FRED_API_KEY;
+    if (!fredKey) throw new Error("FRED_API_KEY not set");
+
+    const response = await fetch(
+      `https://api.stlouisfed.org/fred/series/DCOILBRENTEU/observations?api_key=${fredKey}&limit=1&sort_order=desc`,
+      { signal: AbortSignal.timeout(5000) }
+    );
+
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+
+    if (data.observations?.[0]?.value) {
+      const value = parseFloat(data.observations[0].value);
+      console.log("[fetchBrentOil] Success:", value);
+      return {
+        name: "Brent Oil",
+        value,
+        source: "FRED (DCOILBRENTEU)",
+        fetchedAt: new Date(),
+      };
+    }
+
+    throw new Error("No data in response");
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("[fetchBrentOil] Error:", msg);
+    return {
+      name: "Brent Oil",
+      value: null,
+      source: "FRED",
+      fetchedAt: new Date(),
+      error: msg,
+    };
+  }
+}
+
+/**
+ * Fetch Natural Gas Price from FRED
+ * Series: DHHNGSP (Henry Hub Natural Gas Spot Price)
+ */
+async function fetchNaturalGas(): Promise<RealMacroDataPoint> {
+  try {
+    const fredKey = process.env.FRED_API_KEY;
+    if (!fredKey) throw new Error("FRED_API_KEY not set");
+
+    const response = await fetch(
+      `https://api.stlouisfed.org/fred/series/DHHNGSP/observations?api_key=${fredKey}&limit=1&sort_order=desc`,
+      { signal: AbortSignal.timeout(5000) }
+    );
+
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+
+    if (data.observations?.[0]?.value) {
+      const value = parseFloat(data.observations[0].value);
+      console.log("[fetchNaturalGas] Success:", value);
+      return {
+        name: "Natural Gas",
+        value,
+        source: "FRED (DHHNGSP)",
+        fetchedAt: new Date(),
+      };
+    }
+
+    throw new Error("No data in response");
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("[fetchNaturalGas] Error:", msg);
+    return {
+      name: "Natural Gas",
+      value: null,
+      source: "FRED",
+      fetchedAt: new Date(),
+      error: msg,
+    };
+  }
+}
+
+/**
+ * Fetch Silver Price from FRED
+ * Series: DSLVUSD (Silver, USD/Troy Ounce)
+ */
+async function fetchSilver(): Promise<RealMacroDataPoint> {
+  try {
+    const fredKey = process.env.FRED_API_KEY;
+    if (!fredKey) throw new Error("FRED_API_KEY not set");
+
+    const response = await fetch(
+      `https://api.stlouisfed.org/fred/series/DSLVUSD/observations?api_key=${fredKey}&limit=1&sort_order=desc`,
+      { signal: AbortSignal.timeout(5000) }
+    );
+
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+
+    if (data.observations?.[0]?.value) {
+      const value = parseFloat(data.observations[0].value);
+      console.log("[fetchSilver] Success:", value);
+      return {
+        name: "Silver",
+        value,
+        source: "FRED (DSLVUSD)",
+        fetchedAt: new Date(),
+      };
+    }
+
+    throw new Error("No data in response");
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("[fetchSilver] Error:", msg);
+    return {
+      name: "Silver",
+      value: null,
+      source: "FRED",
+      fetchedAt: new Date(),
+      error: msg,
+    };
+  }
+}
+
+/**
+ * Fetch Copper Price from FRED
+ * Series: PCOPPUSDM (Copper, USD/Pound)
+ */
+async function fetchCopper(): Promise<RealMacroDataPoint> {
+  try {
+    const fredKey = process.env.FRED_API_KEY;
+    if (!fredKey) throw new Error("FRED_API_KEY not set");
+
+    const response = await fetch(
+      `https://api.stlouisfed.org/fred/series/PCOPPUSDM/observations?api_key=${fredKey}&limit=1&sort_order=desc`,
+      { signal: AbortSignal.timeout(5000) }
+    );
+
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+
+    if (data.observations?.[0]?.value) {
+      const value = parseFloat(data.observations[0].value);
+      console.log("[fetchCopper] Success:", value);
+      return {
+        name: "Copper",
+        value,
+        source: "FRED (PCOPPUSDM)",
+        fetchedAt: new Date(),
+      };
+    }
+
+    throw new Error("No data in response");
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("[fetchCopper] Error:", msg);
+    return {
+      name: "Copper",
+      value: null,
+      source: "FRED",
+      fetchedAt: new Date(),
+      error: msg,
+    };
+  }
+}
+
+/**
+ * Fetch USD/EUR Exchange Rate from FRED
+ * Series: DEXUSEU (US Dollars to Euro)
+ */
+async function fetchUSDEUR(): Promise<RealMacroDataPoint> {
+  try {
+    const fredKey = process.env.FRED_API_KEY;
+    if (!fredKey) throw new Error("FRED_API_KEY not set");
+
+    const response = await fetch(
+      `https://api.stlouisfed.org/fred/series/DEXUSEU/observations?api_key=${fredKey}&limit=1&sort_order=desc`,
+      { signal: AbortSignal.timeout(5000) }
+    );
+
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+
+    if (data.observations?.[0]?.value) {
+      const value = parseFloat(data.observations[0].value);
+      console.log("[fetchUSDEUR] Success:", value);
+      return {
+        name: "USD/EUR",
+        value,
+        source: "FRED (DEXUSEU)",
+        fetchedAt: new Date(),
+      };
+    }
+
+    throw new Error("No data in response");
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("[fetchUSDEUR] Error:", msg);
+    return {
+      name: "USD/EUR",
+      value: null,
+      source: "FRED",
+      fetchedAt: new Date(),
+      error: msg,
+    };
+  }
+}
+
+/**
+ * Fetch USD/JPY Exchange Rate from FRED
+ * Series: DEXJPUS (Japanese Yen to US Dollar)
+ */
+async function fetchUSDJPY(): Promise<RealMacroDataPoint> {
+  try {
+    const fredKey = process.env.FRED_API_KEY;
+    if (!fredKey) throw new Error("FRED_API_KEY not set");
+
+    const response = await fetch(
+      `https://api.stlouisfed.org/fred/series/DEXJPUS/observations?api_key=${fredKey}&limit=1&sort_order=desc`,
+      { signal: AbortSignal.timeout(5000) }
+    );
+
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+
+    if (data.observations?.[0]?.value) {
+      const value = parseFloat(data.observations[0].value);
+      console.log("[fetchUSDJPY] Success:", value);
+      return {
+        name: "USD/JPY",
+        value,
+        source: "FRED (DEXJPUS)",
+        fetchedAt: new Date(),
+      };
+    }
+
+    throw new Error("No data in response");
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("[fetchUSDJPY] Error:", msg);
+    return {
+      name: "USD/JPY",
+      value: null,
+      source: "FRED",
+      fetchedAt: new Date(),
+      error: msg,
+    };
+  }
+}
+
+/**
+ * Fetch Corporate Bond Spread from FRED
+ * Series: BAMLC0A0CM (ICE BofA US Corporate Index Option-Adjusted Spread)
+ */
+async function fetchCorpSpread(): Promise<RealMacroDataPoint> {
+  try {
+    const fredKey = process.env.FRED_API_KEY;
+    if (!fredKey) throw new Error("FRED_API_KEY not set");
+
+    const response = await fetch(
+      `https://api.stlouisfed.org/fred/series/BAMLC0A0CM/observations?api_key=${fredKey}&limit=1&sort_order=desc`,
+      { signal: AbortSignal.timeout(5000) }
+    );
+
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+
+    if (data.observations?.[0]?.value) {
+      const value = parseFloat(data.observations[0].value);
+      console.log("[fetchCorpSpread] Success:", value);
+      return {
+        name: "Corp Bond Spread",
+        value,
+        source: "FRED (BAMLC0A0CM)",
+        fetchedAt: new Date(),
+      };
+    }
+
+    throw new Error("No data in response");
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("[fetchCorpSpread] Error:", msg);
+    return {
+      name: "Corp Bond Spread",
+      value: null,
+      source: "FRED",
+      fetchedAt: new Date(),
+      error: msg,
+    };
+  }
+}
+
+/**
+ * Fetch Inflation Rate from FRED
+ * Series: FPCPITOTLZGUSA (Inflation, consumer prices, annual %)
+ */
+async function fetchInflationRate(): Promise<RealMacroDataPoint> {
+  try {
+    const fredKey = process.env.FRED_API_KEY;
+    if (!fredKey) throw new Error("FRED_API_KEY not set");
+
+    const response = await fetch(
+      `https://api.stlouisfed.org/fred/series/FPCPITOTLZGUSA/observations?api_key=${fredKey}&limit=1&sort_order=desc`,
+      { signal: AbortSignal.timeout(5000) }
+    );
+
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+
+    if (data.observations?.[0]?.value) {
+      const value = parseFloat(data.observations[0].value);
+      console.log("[fetchInflationRate] Success:", value);
+      return {
+        name: "Inflation Rate",
+        value,
+        source: "FRED (FPCPITOTLZGUSA)",
+        fetchedAt: new Date(),
+      };
+    }
+
+    throw new Error("No data in response");
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("[fetchInflationRate] Error:", msg);
+    return {
+      name: "Inflation Rate",
+      value: null,
+      source: "FRED",
+      fetchedAt: new Date(),
+      error: msg,
+    };
+  }
+}
+
+/**
+ * Fetch Fed Funds Rate from FRED
+ * Series: FEDFUNDS (Effective Federal Funds Rate)
+ */
+async function fetchFedFundsRate(): Promise<RealMacroDataPoint> {
+  try {
+    const fredKey = process.env.FRED_API_KEY;
+    if (!fredKey) throw new Error("FRED_API_KEY not set");
+
+    const response = await fetch(
+      `https://api.stlouisfed.org/fred/series/FEDFUNDS/observations?api_key=${fredKey}&limit=1&sort_order=desc`,
+      { signal: AbortSignal.timeout(5000) }
+    );
+
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+
+    if (data.observations?.[0]?.value) {
+      const value = parseFloat(data.observations[0].value);
+      console.log("[fetchFedFundsRate] Success:", value);
+      return {
+        name: "Fed Funds Rate",
+        value,
+        source: "FRED (FEDFUNDS)",
+        fetchedAt: new Date(),
+      };
+    }
+
+    throw new Error("No data in response");
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("[fetchFedFundsRate] Error:", msg);
+    return {
+      name: "Fed Funds Rate",
+      value: null,
+      source: "FRED",
+      fetchedAt: new Date(),
+      error: msg,
+    };
+  }
+}
+
+/**
+ * Fetch Unemployment Rate from FRED
+ * Series: UNRATE (Unemployment Rate)
+ */
+async function fetchUnemploymentRate(): Promise<RealMacroDataPoint> {
+  try {
+    const fredKey = process.env.FRED_API_KEY;
+    if (!fredKey) throw new Error("FRED_API_KEY not set");
+
+    const response = await fetch(
+      `https://api.stlouisfed.org/fred/series/UNRATE/observations?api_key=${fredKey}&limit=1&sort_order=desc`,
+      { signal: AbortSignal.timeout(5000) }
+    );
+
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+
+    if (data.observations?.[0]?.value) {
+      const value = parseFloat(data.observations[0].value);
+      console.log("[fetchUnemploymentRate] Success:", value);
+      return {
+        name: "Unemployment Rate",
+        value,
+        source: "FRED (UNRATE)",
+        fetchedAt: new Date(),
+      };
+    }
+
+    throw new Error("No data in response");
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("[fetchUnemploymentRate] Error:", msg);
+    return {
+      name: "Unemployment Rate",
+      value: null,
+      source: "FRED",
+      fetchedAt: new Date(),
+      error: msg,
+    };
+  }
+}
+
+/**
  * Fetch S&P 500 Index from Twelve Data (real-time)
  * Falls back to FRED daily close if Twelve Data fails
  */
@@ -588,6 +1060,20 @@ function generateRealisticMacroData(
     "DXY (Dollar Index)": { base: 103, volatility: 2, trend: -0.01 },
     "VIX (Volatility)": { base: 18, volatility: 5, trend: 0.02 },
     "10Y Treasury Yield": { base: 4.2, volatility: 0.3, trend: -0.002 },
+    "Oil Price (WTI)": { base: 80, volatility: 8, trend: 0.02 },
+    "Gold Price": { base: 2000, volatility: 50, trend: 0.01 },
+    "S&P 500": { base: 4500, volatility: 100, trend: 0.03 },
+    // NEW: 10 additional indicators
+    "Brent Oil": { base: 85, volatility: 8, trend: 0.02 },
+    "Natural Gas": { base: 3.5, volatility: 0.5, trend: -0.01 },
+    "Silver": { base: 25, volatility: 1, trend: 0.005 },
+    "Copper": { base: 4, volatility: 0.3, trend: 0.01 },
+    "USD/EUR": { base: 0.92, volatility: 0.02, trend: 0.0005 },
+    "USD/JPY": { base: 150, volatility: 3, trend: -0.02 },
+    "Corp Bond Spread": { base: 120, volatility: 20, trend: 0.05 },
+    "Inflation Rate": { base: 3.5, volatility: 0.3, trend: -0.002 },
+    "Fed Funds Rate": { base: 5.5, volatility: 0.1, trend: -0.005 },
+    "Unemployment Rate": { base: 4, volatility: 0.3, trend: 0.01 },
   };
 
   Object.entries(baseValues).forEach(([name, { base, volatility, trend }]) => {
@@ -664,6 +1150,17 @@ export async function fetchHistoricalMacroData(): Promise<MacroIndicatorData[]> 
       endDateStr
     ),
     fetchFredHistorical("SP500", "S&P 500", startDateStr, endDateStr),
+    // NEW: 10 additional indicators
+    fetchFredHistorical("DCOILBRENTEU", "Brent Oil", startDateStr, endDateStr),
+    fetchFredHistorical("DHHNGSP", "Natural Gas", startDateStr, endDateStr),
+    fetchFredHistorical("DSLVUSD", "Silver", startDateStr, endDateStr),
+    fetchFredHistorical("PCOPPUSDM", "Copper", startDateStr, endDateStr),
+    fetchFredHistorical("DEXUSEU", "USD/EUR", startDateStr, endDateStr),
+    fetchFredHistorical("DEXJPUS", "USD/JPY", startDateStr, endDateStr),
+    fetchFredHistorical("BAMLC0A0CM", "Corp Bond Spread", startDateStr, endDateStr),
+    fetchFredHistorical("FPCPITOTLZGUSA", "Inflation Rate", startDateStr, endDateStr),
+    fetchFredHistorical("FEDFUNDS", "Fed Funds Rate", startDateStr, endDateStr),
+    fetchFredHistorical("UNRATE", "Unemployment Rate", startDateStr, endDateStr),
   ]);
 
   // Process results

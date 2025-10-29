@@ -60,6 +60,17 @@ export async function POST(request: NextRequest) {
       oil: realMacroData.oil.value,
       gold: realMacroData.gold.value,
       sp500: realMacroData.sp500.value,
+      // NEW: 10 additional indicators
+      brentOil: realMacroData.brentOil.value,
+      naturalGas: realMacroData.naturalGas.value,
+      silver: realMacroData.silver.value,
+      copper: realMacroData.copper.value,
+      usdEur: realMacroData.usdEur.value,
+      usdJpy: realMacroData.usdJpy.value,
+      corpSpread: realMacroData.corpSpread.value,
+      inflationRate: realMacroData.inflationRate.value,
+      fedFundsRate: realMacroData.fedFundsRate.value,
+      unemploymentRate: realMacroData.unemploymentRate.value,
       allSuccess: realMacroData.allSuccess,
     });
 
