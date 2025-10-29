@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { searchTickers, formatTickerOption, POPULAR_TICKERS } from "@/lib/tickerSearch";
+import { useFavorites } from "@/hooks/useFavorites";
 
 interface TickerAutocompleteProps {
   value: string;
@@ -20,6 +22,9 @@ export default function TickerAutocomplete({
   const [suggestions, setSuggestions] = useState(POPULAR_TICKERS.slice(0, 5));
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const { data: session } = useSession();
+  const { favorites, addFavorite, removeFavorite, isFavorite } = useFavorites();
+  const isFavorited = value && isFavorite(value.toUpperCase());
 
   // Update suggestions when input changes
   useEffect(() => {
@@ -54,20 +59,44 @@ export default function TickerAutocomplete({
     inputRef.current?.focus();
   };
 
+  const handleToggleFavorite = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!session) {
+      alert("Please sign in to save favorites");
+      return;
+    }
+    if (isFavorited) {
+      removeFavorite(value.toUpperCase());
+    } else {
+      addFavorite(value.toUpperCase());
+    }
+  };
+
   return (
     <div ref={containerRef} className="relative">
       <div>
         <label className="text-label mb-3 block">Search Stock</label>
-        <input
-          ref={inputRef}
-          type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value.toUpperCase())}
-          onFocus={() => setIsOpen(true)}
-          placeholder={placeholder}
-          className="input-base w-full text-lg"
-          autoComplete="off"
-        />
+        <div className="relative flex items-center">
+          <input
+            ref={inputRef}
+            type="text"
+            value={value}
+            onChange={(e) => onChange(e.target.value.toUpperCase())}
+            onFocus={() => setIsOpen(true)}
+            placeholder={placeholder}
+            className="input-base w-full text-lg pr-12"
+            autoComplete="off"
+          />
+          {value && (
+            <button
+              onClick={handleToggleFavorite}
+              className="absolute right-4 text-xl transition-colors hover:scale-110"
+              title={isFavorited ? "Remove from watchlist" : "Add to watchlist"}
+            >
+              {isFavorited ? "⭐" : "☆"}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Dropdown suggestions */}

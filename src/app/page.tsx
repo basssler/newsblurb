@@ -339,6 +339,13 @@ export default function Home() {
         }}
       />
 
+      {/* Header with Sign In */}
+      <div className="relative border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+        <div className="max-w-4xl mx-auto px-4 py-4 flex justify-end">
+          <UserMenu />
+        </div>
+      </div>
+
       <div className="relative">
         {!showAnalysis ? (
           // Welcome/Search Screen
