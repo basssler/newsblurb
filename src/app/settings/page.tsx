@@ -5,6 +5,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useDarkMode } from "@/hooks/useDarkMode";
+import { useFavorites } from "@/hooks/useFavorites";
 
 interface Settings {
   darkMode: boolean;
@@ -23,6 +24,7 @@ const DEFAULT_SETTINGS: Settings = {
 export default function SettingsPage() {
   const { data: session, status } = useSession();
   const { darkMode, setDarkMode } = useDarkMode();
+  const { favorites, removeFavorite } = useFavorites();
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [mounted, setMounted] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -213,6 +215,62 @@ export default function SettingsPage() {
                   </p>
                 </div>
               </label>
+            </div>
+
+            <hr className="border-slate-200 dark:border-slate-700" />
+
+            {/* Watchlist Management */}
+            <div>
+              <div className="mb-4">
+                <h3 className="font-semibold text-slate-900 dark:text-white mb-1">
+                  📊 My Watchlist
+                </h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  {favorites.length > 0
+                    ? `${favorites.length} stock${favorites.length !== 1 ? "s" : ""} in watchlist`
+                    : "No stocks in watchlist yet"}
+                </p>
+              </div>
+
+              {favorites.length > 0 ? (
+                <div className="space-y-2">
+                  {favorites.map((fav) => (
+                    <div
+                      key={fav.ticker}
+                      className="flex items-center justify-between bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg"
+                    >
+                      <span className="font-medium text-foreground">
+                        {fav.ticker}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <Link
+                          href={`/?ticker=${fav.ticker}&auto=true`}
+                          className="text-xs px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors"
+                        >
+                          Analyze
+                        </Link>
+                        <button
+                          onClick={() => removeFavorite(fav.ticker)}
+                          className="text-xs px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded transition-colors"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500 dark:text-slate-400 italic">
+                  No stocks in watchlist yet
+                </p>
+              )}
+
+              <Link
+                href="/watchlist"
+                className="inline-block text-sm text-blue-500 hover:text-blue-600 font-medium mt-3"
+              >
+                Manage full watchlist →
+              </Link>
             </div>
 
             {/* Action Buttons */}
