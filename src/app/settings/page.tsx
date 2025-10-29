@@ -12,6 +12,10 @@ interface Settings {
   autoRefresh: boolean;
   defaultHorizon: "Intraday" | "1-Week" | "Long-Term";
   notifications: boolean;
+  newsArticleCount: number;
+  newsRefreshInterval: number; // minutes
+  enableNewsAlerts: boolean;
+  includeAnalystNotes: boolean;
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -19,6 +23,10 @@ const DEFAULT_SETTINGS: Settings = {
   autoRefresh: false,
   defaultHorizon: "1-Week",
   notifications: true,
+  newsArticleCount: 3,
+  newsRefreshInterval: 1440, // 24 hours
+  enableNewsAlerts: true,
+  includeAnalystNotes: false,
 };
 
 export default function SettingsPage() {
@@ -64,7 +72,7 @@ export default function SettingsPage() {
 
   const handleSettingChange = (
     key: keyof Settings,
-    value: boolean | string
+    value: boolean | string | number
   ) => {
     setSettings({ ...settings, [key]: value });
     // Apply dark mode immediately if darkMode setting changes
@@ -215,6 +223,113 @@ export default function SettingsPage() {
                   </p>
                 </div>
               </label>
+            </div>
+
+            <hr className="border-slate-200 dark:border-slate-700" />
+
+            {/* News Preferences */}
+            <div>
+              <div className="mb-4">
+                <h3 className="font-semibold text-slate-900 dark:text-white mb-1">
+                  📰 News Preferences
+                </h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Customize your stock news feed
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                {/* Articles Count */}
+                <div>
+                  <label className="block font-medium text-slate-900 dark:text-white mb-2">
+                    Articles per Stock
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={settings.newsArticleCount}
+                    onChange={(e) =>
+                      handleSettingChange(
+                        "newsArticleCount",
+                        parseInt(e.target.value, 10)
+                      )
+                    }
+                    className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                    Number of news articles to display (1-10)
+                  </p>
+                </div>
+
+                {/* Refresh Interval */}
+                <div>
+                  <label className="block font-medium text-slate-900 dark:text-white mb-2">
+                    News Refresh Interval
+                  </label>
+                  <select
+                    value={settings.newsRefreshInterval}
+                    onChange={(e) =>
+                      handleSettingChange(
+                        "newsRefreshInterval",
+                        parseInt(e.target.value, 10)
+                      )
+                    }
+                    className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value={60}>Every hour</option>
+                    <option value={360}>Every 6 hours</option>
+                    <option value={720}>Every 12 hours</option>
+                    <option value={1440}>Daily (default)</option>
+                  </select>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                    How often to fetch fresh news articles
+                  </p>
+                </div>
+
+                {/* News Alerts */}
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={settings.enableNewsAlerts}
+                    onChange={(e) =>
+                      handleSettingChange("enableNewsAlerts", e.target.checked)
+                    }
+                    className="w-5 h-5 rounded border-slate-300"
+                  />
+                  <div>
+                    <p className="font-medium text-slate-900 dark:text-white">
+                      High-Impact News Alerts
+                    </p>
+                    <p className="text-xs text-slate-600 dark:text-slate-400">
+                      Notify me of high-impact news articles
+                    </p>
+                  </div>
+                </label>
+
+                {/* Analyst Notes */}
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={settings.includeAnalystNotes}
+                    onChange={(e) =>
+                      handleSettingChange(
+                        "includeAnalystNotes",
+                        e.target.checked
+                      )
+                    }
+                    className="w-5 h-5 rounded border-slate-300"
+                  />
+                  <div>
+                    <p className="font-medium text-slate-900 dark:text-white">
+                      Include Analyst Notes
+                    </p>
+                    <p className="text-xs text-slate-600 dark:text-slate-400">
+                      Show analyst upgrades/downgrades (premium feature)
+                    </p>
+                  </div>
+                </label>
+              </div>
             </div>
 
             <hr className="border-slate-200 dark:border-slate-700" />
