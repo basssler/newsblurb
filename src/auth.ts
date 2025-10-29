@@ -1,5 +1,26 @@
-import NextAuth, { type NextAuthOptions } from "next-auth";
+import NextAuth from "next-auth";
+import type { NextAuthOptions } from "next-auth";
 import GitHubProvider from "next-auth/providers/github";
+
+declare module "next-auth" {
+  interface Session {
+    user?: {
+      id?: string;
+      email?: string;
+      name?: string | null;
+      image?: string | null;
+    };
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    id?: string;
+    email?: string | null;
+    name?: string | null;
+    image?: string | null;
+  }
+}
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -27,9 +48,9 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
-        session.user.email = token.email as string;
-        session.user.name = token.name as string;
-        session.user.image = token.image as string;
+        session.user.email = token.email ?? undefined;
+        session.user.name = token.name ?? null;
+        session.user.image = token.image ?? null;
       }
       return session;
     },
@@ -37,4 +58,5 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
 };
 
-export const { handlers, auth, signIn, signOut } = NextAuth(authOptions);
+// For v4, we just export the options, the route handler will use NextAuth(authOptions)
+// For useSession hook, we'll handle it with SessionProvider component
