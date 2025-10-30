@@ -80,7 +80,7 @@ export function StockNews({ ticker, maxArticles = 3 }: StockNewsProps) {
     return (
       <div className="p-6 text-center bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg">
         <p className="text-slate-600 dark:text-slate-400">
-          No news articles found for {ticker}
+          Unable to generate market insights at this time. Please try again later.
         </p>
       </div>
     );
@@ -105,14 +105,20 @@ export function StockNews({ ticker, maxArticles = 3 }: StockNewsProps) {
           <div className="flex items-start justify-between gap-4 mb-2">
             <div className="flex-1">
               {/* Title */}
-              <a
-                href={article.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm font-bold text-blue-600 dark:text-blue-400 hover:underline line-clamp-2"
-              >
-                {article.title}
-              </a>
+              {article.url ? (
+                <a
+                  href={article.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm font-bold text-blue-600 dark:text-blue-400 hover:underline line-clamp-2"
+                >
+                  {article.title}
+                </a>
+              ) : (
+                <p className="text-sm font-bold text-slate-900 dark:text-slate-100 line-clamp-2">
+                  {article.title}
+                </p>
+              )}
 
               {/* Source and date */}
               <div className="flex items-center gap-2 mt-1">
@@ -167,15 +173,17 @@ export function StockNews({ ticker, maxArticles = 3 }: StockNewsProps) {
             )}
           </div>
 
-          {/* Read more link */}
-          <a
-            href={article.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-block text-xs text-blue-600 dark:text-blue-400 hover:underline mt-3"
-          >
-            Read full article →
-          </a>
+          {/* Read more link (only if URL exists) */}
+          {article.url && (
+            <a
+              href={article.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block text-xs text-blue-600 dark:text-blue-400 hover:underline mt-3"
+            >
+              Read full article →
+            </a>
+          )}
         </article>
       ))}
 

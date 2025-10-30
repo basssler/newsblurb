@@ -1,8 +1,8 @@
 /**
- * News API Endpoint
+ * Market Insights API Endpoint
  * GET /api/news?ticker=AAPL&refresh=1440
  *
- * Returns stock-specific news articles with AI-generated summaries and relevance scores
+ * Returns AI-generated market insights with sentiment and impact analysis
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -32,28 +32,34 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Optional: Parse stock data from query params (for AI context)
+    const stockData = {
+      price: searchParams.get("price") ? parseFloat(searchParams.get("price")!) : undefined,
+      rsi: searchParams.get("rsi") ? parseFloat(searchParams.get("rsi")!) : undefined,
+      sma20: searchParams.get("sma20") ? parseFloat(searchParams.get("sma20")!) : undefined,
+      sma50: searchParams.get("sma50") ? parseFloat(searchParams.get("sma50")!) : undefined,
+      atr: searchParams.get("atr") ? parseFloat(searchParams.get("atr")!) : undefined,
+      pe: searchParams.get("pe") ? parseFloat(searchParams.get("pe")!) : undefined,
+      dividend: searchParams.get("dividend") ? parseFloat(searchParams.get("dividend")!) : undefined,
+    };
+
     console.log(
-      `[NEWS-API] Fetching news for ${ticker.toUpperCase()} (refresh: ${refreshMinutes}min)`
+      `[INSIGHTS-API] Generating insights for ${ticker.toUpperCase()} (refresh: ${refreshMinutes}min)`
     );
 
-    // Fetch articles
-    const articles = await getStockNews(ticker.toUpperCase(), refreshMinutes);
+    // Generate insights
+    const articles = await getStockNews(ticker.toUpperCase(), refreshMinutes, stockData);
 
     // Build response
     const response: NewsResponse = {
       ticker: ticker.toUpperCase(),
       articles,
-      cached: articles.length > 0 && refreshMinutes < 60, // Simple heuristic
+      cached: articles.length > 0,
       cacheExpires: new Date(Date.now() + refreshMinutes * 60 * 1000),
       preferences: {
-        defaultCount: 3,
+        defaultCount: 5,
         refreshIntervalMinutes: refreshMinutes,
-        sources: [
-          "finance.yahoo.com",
-          "reuters.com",
-          "bloomberg.com",
-          "cnbc.com",
-        ],
+        sources: ["AI-Generated Analysis"],
       },
     };
 
@@ -65,11 +71,11 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
-    console.error("[NEWS-API] Error:", errorMessage);
+    console.error("[INSIGHTS-API] Error:", errorMessage);
 
     return NextResponse.json(
       {
-        error: "Failed to fetch news",
+        error: "Failed to generate insights",
         details: errorMessage,
         articles: [], // Return empty array as fallback
       },

@@ -13,6 +13,7 @@ import PerspectiveSelector from "./PerspectiveSelector";
 import AlertCreator from "./AlertCreator";
 import PDFExportButton from "./PDFExportButton";
 import ShareButton from "./ShareButton";
+import { StockNews } from "./StockNews";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useAlerts } from "@/hooks/useAlerts";
 import { CorrelationAnalysis } from "@/lib/macro/rollingCorrelations";
@@ -80,7 +81,7 @@ export default function AnalysisView({
   const { data: session } = useSession();
   const { isFavorite, addFavorite, removeFavorite } = useFavorites();
   const { checkAlerts } = useAlerts();
-  const [activeTab, setActiveTab] = useState<"fundamentals" | "technicals" | "charts" | "macro" | "summary">("charts");
+  const [activeTab, setActiveTab] = useState<"fundamentals" | "technicals" | "charts" | "macro" | "summary" | "news">("charts");
   const [correlationAnalysis, setCorrelationAnalysis] = useState<CorrelationAnalysis | null>(null);
   const [correlationLoading, setCorrelationLoading] = useState(false);
 
@@ -271,6 +272,7 @@ export default function AnalysisView({
             { id: "charts", label: "Charts" },
             { id: "macro", label: "Macro Analysis" },
             { id: "summary", label: "AI Summary" },
+            { id: "news", label: "💡 Market Insights" },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -529,6 +531,17 @@ export default function AnalysisView({
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Market Insights Tab */}
+          {activeTab === "news" && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-xl font-bold text-foreground mb-1">AI Market Insights</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Claude AI-generated analysis and insights for {ticker}</p>
+              </div>
+              <StockNews ticker={ticker} maxArticles={10} />
             </div>
           )}
         </div>
