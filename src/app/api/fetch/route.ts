@@ -6,6 +6,7 @@ import {
   generateMockFundamentals,
 } from "@/lib/alphaVantage";
 import { getCache, setCache, getCacheKey, CACHE_CONFIG, getRemainingTTL } from "@/lib/cache/kv";
+import { waitRandom } from "@/lib/utils";
 
 export async function POST(request: NextRequest) {
   try {
@@ -59,10 +60,12 @@ export async function POST(request: NextRequest) {
       console.log(`[FETCH API] Requesting data for ${tickerSymbol} (${horizon})`);
       console.log(`[FETCH API] Alpha Vantage API Key: ${process.env.ALPHA_VANTAGE_API_KEY ? "SET" : "NOT SET"}`);
 
-      // Get current quote
       console.log(`[FETCH API] Getting global quote...`);
       currentQuote = await getGlobalQuote(tickerSymbol);
       console.log(`[FETCH API] Quote received:`, currentQuote);
+
+      // Random delay to prevent rate limiting (2-4 seconds)
+      await waitRandom(2, 4);
 
       // Fetch appropriate time series based on horizon
       if (horizon === "Intraday") {

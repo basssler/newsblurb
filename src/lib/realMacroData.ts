@@ -8,6 +8,7 @@
 
 import { getCache, setCache, getCacheKey } from "@/lib/cache/kv";
 import type { MacroIndicatorData } from "@/lib/macro/rollingCorrelations";
+import { waitRandom } from "@/lib/utils";
 
 export interface RealMacroDataPoint {
   name: string;
@@ -921,6 +922,10 @@ export async function fetchHistoricalMacroDataAlphaVantage(): Promise<MacroIndic
 
     // Fetch SPY (S&P 500 proxy) from Alpha Vantage
     console.log("[fetchHistoricalMacroDataAlphaVantage] Fetching SPY from Alpha Vantage...");
+
+    // Random delay to prevent rate limiting (2-4 seconds)
+    await waitRandom(2, 4);
+
     const spyResponse = await fetch(
       `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=SPY&outputsize=full&apikey=${avKey}`,
       { signal: AbortSignal.timeout(15000) }
@@ -1255,8 +1260,19 @@ export async function fetchHistoricalSP500Data(
   startDate: string,
   endDate: string
 ): Promise<Array<{ date: string; value: number }>> {
+  const cacheKey = getCacheKey("macro", "sp500-historical");
+  const cached = await getCache(cacheKey);
+
+  if (cached) {
+    console.log("[fetchHistoricalSP500Data] Cache HIT");
+    // Filter cached data to requested range
+    return (cached as Array<{ date: string; value: number }>).filter(
+      (v) => v.date >= startDate && v.date <= endDate
+    );
+  }
+
   try {
-    console.log(`[fetchHistoricalSP500Data] Fetching S&P 500 from ${startDate} to ${endDate}`);
+    console.log(`[fetchHistoricalSP500Data] Cache MISS - Fetching S&P 500 from ${startDate} to ${endDate}`);
 
     const avKey = process.env.ALPHA_VANTAGE_API_KEY;
     if (!avKey) throw new Error("ALPHA_VANTAGE_API_KEY not set");
@@ -1280,17 +1296,19 @@ export async function fetchHistoricalSP500Data(
         date,
         value: parseFloat(values["4. close"]),
       }))
-      .filter(
-        (v) =>
-          !isNaN(v.value) &&
-          v.value > 0 &&
-          v.date >= startDate &&
-          v.date <= endDate
-      )
+      .filter((v) => !isNaN(v.value) && v.value > 0)
       .sort((a, b) => a.date.localeCompare(b.date));
 
     console.log(`[fetchHistoricalSP500Data] Successfully fetched ${values.length} S&P 500 data points from Alpha Vantage`);
-    return values;
+
+    // Cache the full dataset for 24 hours
+    await setCache(cacheKey, values, 86400);
+
+    // Return filtered to requested range
+    return values.filter(
+      (v) => v.date >= startDate && v.date <= endDate
+    );
+
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
     console.error(`[fetchHistoricalSP500Data] Error: ${msg}`);
