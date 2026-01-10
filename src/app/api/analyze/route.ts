@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 interface PricePoint {
   date: string;
   close: number;
+  high: number;
+  low: number;
 }
 
 // Calculate RSI (Relative Strength Index) - 14 period
@@ -65,11 +67,16 @@ function calculateATR(
   const trueRanges: number[] = [];
 
   for (let i = 1; i < priceHistory.length; i++) {
-    const current = priceHistory[i].close;
-    const previous = priceHistory[i - 1].close;
+    const currentHigh = priceHistory[i].high;
+    const currentLow = priceHistory[i].low;
+    const previousClose = priceHistory[i - 1].close;
 
-    // True Range = max(current - previous, |current - previous|)
-    const tr = Math.abs(current - previous);
+    // True Range = max(High - Low, |High - PrevClose|, |Low - PrevClose|)
+    const tr1 = currentHigh - currentLow;
+    const tr2 = Math.abs(currentHigh - previousClose);
+    const tr3 = Math.abs(currentLow - previousClose);
+
+    const tr = Math.max(tr1, tr2, tr3);
     trueRanges.push(tr);
   }
 

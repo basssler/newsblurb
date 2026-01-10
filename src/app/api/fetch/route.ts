@@ -154,6 +154,9 @@ export async function POST(request: NextRequest) {
         mockHistory.push({
           date: date.toISOString().split('T')[0],
           close: Math.round(price * 100) / 100,
+          high: Math.round(price * 1.02 * 100) / 100,
+          low: Math.round(price * 0.98 * 100) / 100,
+          open: Math.round(price * 100) / 100, // Simplified
         });
       }
 
@@ -177,6 +180,8 @@ export async function POST(request: NextRequest) {
       priceHistory: priceHistory.map((p) => ({
         date: p.date,
         close: p.close,
+        high: p.high,
+        low: p.low,
       })),
     };
 
