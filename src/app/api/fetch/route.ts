@@ -21,6 +21,15 @@ export async function POST(request: NextRequest) {
 
     const tickerSymbol = ticker.toUpperCase();
 
+    // Check for API Key
+    if (!process.env.ALPHA_VANTAGE_API_KEY) {
+      console.error("[FETCH API] ALPHA_VANTAGE_API_KEY is not set");
+      return NextResponse.json(
+        { error: "Server configuration error: API Key missing" },
+        { status: 500 }
+      );
+    }
+
     // Check cache first (only for standard horizons, not custom date ranges)
     const isCached = horizon !== "Custom";
     let cacheKey = "";
@@ -95,13 +104,26 @@ export async function POST(request: NextRequest) {
       console.error(`[FETCH API] Full error:`, error);
 
       // If it's a rate limit error, return 429
-      if (errorMessage.includes("rate limit")) {
+      if (errorMessage.includes("rate limit") || errorMessage.includes("ALPHA_VANTAGE_RATE_LIMIT")) {
         console.warn(`[FETCH API] Rate limit hit`);
         return NextResponse.json(
           {
             error: "Alpha Vantage API rate limit exceeded. Please try again in a moment.",
           },
           { status: 429 }
+        );
+      }
+
+      // If it's a usage limit/premium error
+      if (errorMessage.includes("ALPHA_VANTAGE_USAGE_LIMIT")) {
+        console.warn(`[FETCH API] Usage limit hit`);
+        // Return 503 Service Unavailable or 429 - letting the frontend know the specific issue
+        return NextResponse.json(
+          {
+            error: "Alpha Vantage API limit reached. This endpoint may require a premium subscription or you have exhausted your daily limit.",
+            details: errorMessage
+          },
+          { status: 429 } // Treat as rate limit for retry behavior
         );
       }
 

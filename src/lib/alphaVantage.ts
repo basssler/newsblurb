@@ -64,13 +64,13 @@ export async function getDailyTimeSeries(ticker: string) {
 
     // Check for API errors
     if (data.Note) {
-      console.error(`[AV] Note/Error:`, data.Note);
-      throw new Error(`Alpha Vantage rate limit or error: ${data.Note}`);
+      console.warn(`[AV] Rate limit hit:`, data.Note);
+      throw new Error(`ALPHA_VANTAGE_RATE_LIMIT: ${data.Note}`);
     }
 
     if (data.Information) {
-      console.error(`[AV] Information error:`, data.Information);
-      throw new Error(`Alpha Vantage error: ${data.Information}`);
+      console.warn(`[AV] Usage limit/Information:`, data.Information);
+      throw new Error(`ALPHA_VANTAGE_USAGE_LIMIT: ${data.Information}`);
     }
 
     const timeSeries = data["Time Series (Daily)"];
@@ -117,7 +117,11 @@ export async function getIntradayTimeSeries(ticker: string) {
 
     // Check for API errors
     if (data.Note) {
-      throw new Error(`Alpha Vantage rate limit: ${data.Note}`);
+      throw new Error(`ALPHA_VANTAGE_RATE_LIMIT: ${data.Note}`);
+    }
+
+    if (data.Information) {
+      throw new Error(`ALPHA_VANTAGE_USAGE_LIMIT: ${data.Information}`);
     }
 
     const timeSeries = data["Time Series (60min)"];
@@ -159,7 +163,11 @@ export async function getGlobalQuote(ticker: string) {
 
     // Check for API errors
     if (data.Note) {
-      throw new Error(`Alpha Vantage rate limit: ${data.Note}`);
+      throw new Error(`ALPHA_VANTAGE_RATE_LIMIT: ${data.Note}`);
+    }
+
+    if (data.Information) {
+      throw new Error(`ALPHA_VANTAGE_USAGE_LIMIT: ${data.Information}`);
     }
 
     const quote = data["Global Quote"];

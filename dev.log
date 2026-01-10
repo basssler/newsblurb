@@ -18,3 +18,891 @@
 
  ✓ Starting...
  ✓ Ready in 2.7s
+ ○ Compiling / ...
+ ✓ Compiled / in 8s
+ GET / 200 in 9473ms
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 906ms
+ GET /favicon.ico?favicon.0b3bf435.ico 200 in 1206ms
+ GET /api/auth/session 200 in 3010ms
+ ○ Compiling /api/fetch ...
+ ✓ Compiled /api/fetch in 517ms
+[CACHE] Get error: Error: @vercel/kv: Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN
+    at getCache (src\lib\cache\kv.ts:34:29)
+    at POST (src\app\api\fetch\route.ts:31:34)
+  32 | export async function getCache(key: string): Promise<any | null> {
+  33 |   try {
+> 34 |     const cached = await kv.get(key);
+     |                             ^
+  35 |
+  36 |     if (!cached) {
+  37 |       stats.misses++;
+[FETCH API] Cache MISS for AAPL (1-Week)
+[FETCH API] Requesting data for AAPL (1-Week)
+[FETCH API] Alpha Vantage API Key: SET
+[FETCH API] Getting global quote...
+Error fetching global quote: Error: No quote data received
+    at getGlobalQuote (src\lib\alphaVantage.ts:167:13)
+    at async POST (src\app\api\fetch\route.ts:55:22)
+  165 |     const quote = data["Global Quote"];
+  166 |     if (!quote || !quote["05. price"]) {
+> 167 |       throw new Error("No quote data received");
+      |             ^
+  168 |     }
+  169 |
+  170 |     return {
+[FETCH API] Error for AAPL: No quote data received
+[FETCH API] Full error: Error: No quote data received
+    at getGlobalQuote (src\lib\alphaVantage.ts:167:13)
+    at async POST (src\app\api\fetch\route.ts:55:22)
+  165 |     const quote = data["Global Quote"];
+  166 |     if (!quote || !quote["05. price"]) {
+> 167 |       throw new Error("No quote data received");
+      |             ^
+  168 |     }
+  169 |
+  170 |     return {
+[FETCH API] Falling back to mock data for AAPL
+[CACHE] Set error: Error: @vercel/kv: Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN
+    at setCache (src\lib\cache\kv.ts:76:14)
+    at POST (src\app\api\fetch\route.ts:160:21)
+  74 |
+  75 |     // Set with EX (expire in seconds) for automatic cleanup
+> 76 |     await kv.set(key, JSON.stringify(entry), { ex: ttlSeconds + 60 }); // +60s buffer
+     |              ^
+  77 |   } catch (error) {
+  78 |     console.error("[CACHE] Set error:", error);
+  79 |   }
+[FETCH API] Cached AAPL (1-Week) for 900s
+ POST /api/fetch 200 in 1858ms
+ ✓ Compiled /api/analyze in 463ms
+ POST /api/analyze 200 in 931ms
+ ○ Compiling /api/explain ...
+ ✓ Compiled /api/explain in 636ms
+[CACHE] Get error: Error: @vercel/kv: Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN
+    at getCache (src\lib\cache\kv.ts:34:29)
+    at POST (src\app\api\macro-analysis\route.ts:36:42)
+  32 | export async function getCache(key: string): Promise<any | null> {
+  33 |   try {
+> 34 |     const cached = await kv.get(key);
+     |                             ^
+  35 |
+  36 |     if (!cached) {
+  37 |       stats.misses++;
+[MACRO-ANALYSIS] Cache MISS for AAPL
+[MACRO-ANALYSIS] Analyzing correlations for AAPL with 30 price points
+[MACRO-ANALYSIS] Fetching current macro data...
+[CACHE] Get error: Error: @vercel/kv: Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN
+    at getCache (src\lib\cache\kv.ts:34:29)
+    at fetchRealMacroData (src\lib\realMacroData.ts:74:32)
+    at POST (src\app\api\macro-analysis\route.ts:53:51)
+  32 | export async function getCache(key: string): Promise<any | null> {
+  33 |   try {
+> 34 |     const cached = await kv.get(key);
+     |                             ^
+  35 |
+  36 |     if (!cached) {
+  37 |       stats.misses++;
+[realMacroData] Cache MISS - fetching from APIs
+[CACHE] Get error: Error: @vercel/kv: Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN
+    at getCache (src\lib\cache\kv.ts:34:29)
+    at POST (src\app\api\macro-analysis\route.ts:36:42)
+  32 | export async function getCache(key: string): Promise<any | null> {
+  33 |   try {
+> 34 |     const cached = await kv.get(key);
+     |                             ^
+  35 |
+  36 |     if (!cached) {
+  37 |       stats.misses++;
+[MACRO-ANALYSIS] Cache MISS for AAPL
+[MACRO-ANALYSIS] Analyzing correlations for AAPL with 30 price points
+[MACRO-ANALYSIS] Fetching current macro data...
+[CACHE] Get error: Error: @vercel/kv: Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN
+    at getCache (src\lib\cache\kv.ts:34:29)
+    at fetchRealMacroData (src\lib\realMacroData.ts:74:32)
+    at POST (src\app\api\macro-analysis\route.ts:53:51)
+  32 | export async function getCache(key: string): Promise<any | null> {
+  33 |   try {
+> 34 |     const cached = await kv.get(key);
+     |                             ^
+  35 |
+  36 |     if (!cached) {
+  37 |       stats.misses++;
+[realMacroData] Cache MISS - fetching from APIs
+[fetchDXY] Error: HTTP 404
+[fetchDXY] Error: HTTP 404
+[fetchSP500] Twelve Data failed, trying FRED daily: No price data
+[fetchVIX] Twelve Data failed, trying FRED daily: No price data
+[fetch10YYield] Error: HTTP 404
+[fetch10YYield] Error: HTTP 404
+[fetchGold] Error: HTTP 404
+[fetchCopper] Error: HTTP 404
+[fetchBrentOil] Error: HTTP 404
+[fetchGold] Error: HTTP 404
+[fetchVIX] Twelve Data failed, trying FRED daily: No price data
+[fetchSP500] Twelve Data failed, trying FRED daily: No price data
+[fetchCorpSpread] Error: HTTP 404
+[fetchFedFundsRate] Error: HTTP 404
+[fetchUSDEUR] Error: HTTP 404
+[fetchUSDJPY] Error: HTTP 404
+[fetchCorpSpread] Error: HTTP 404
+[fetchNaturalGas] Error: HTTP 404
+[fetchOil] Error: HTTP 404
+[fetchNaturalGas] Error: HTTP 404
+[fetchUnemploymentRate] Error: HTTP 404
+[fetchInflationRate] Error: HTTP 404
+[fetchUSDEUR] Error: HTTP 404
+[fetchInflationRate] Error: HTTP 404
+[fetchCopper] Error: HTTP 404
+[fetchFedFundsRate] Error: HTTP 404
+[fetchUnemploymentRate] Error: HTTP 404
+[fetchUSDJPY] Error: HTTP 404
+[fetchOil] Error: HTTP 404
+[fetchSP500] Both failed: HTTP 404
+[fetchBrentOil] Error: HTTP 404
+[fetchVIX] Both failed: HTTP 404
+[fetchSilver] Error: HTTP 404
+[CACHE] Set error: Error: @vercel/kv: Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN
+    at setCache (src\lib\cache\kv.ts:76:14)
+    at fetchRealMacroData (src\lib\realMacroData.ts:137:17)
+    at async POST (src\app\api\macro-analysis\route.ts:53:27)
+  74 |
+  75 |     // Set with EX (expire in seconds) for automatic cleanup
+> 76 |     await kv.set(key, JSON.stringify(entry), { ex: ttlSeconds + 60 }); // +60s buffer
+     |              ^
+  77 |   } catch (error) {
+  78 |     console.error("[CACHE] Set error:", error);
+  79 |   }
+[realMacroData] Fetch results: {
+  dxy: null,
+  vix: null,
+  yield10y: null,
+  oil: null,
+  gold: null,
+  sp500: null,
+  brentOil: null,
+  naturalGas: null,
+  silver: null,
+  copper: null,
+  usdEur: null,
+  usdJpy: null,
+  corpSpread: null,
+  inflationRate: null,
+  fedFundsRate: null,
+  unemploymentRate: null
+}
+[MACRO-ANALYSIS] Real macro data fetched: {
+  dxy: null,
+  vix: null,
+  yield10y: null,
+  oil: null,
+  gold: null,
+  sp500: null,
+  brentOil: null,
+  naturalGas: null,
+  silver: null,
+  copper: null,
+  usdEur: null,
+  usdJpy: null,
+  corpSpread: null,
+  inflationRate: null,
+  fedFundsRate: null,
+  unemploymentRate: null,
+  allSuccess: false
+}
+[MACRO-ANALYSIS] Fetching historical macro data...
+[CACHE] Get error: Error: @vercel/kv: Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN
+    at getCache (src\lib\cache\kv.ts:34:29)
+    at fetchHistoricalMacroDataAlphaVantage (src\lib\realMacroData.ts:902:32)
+    at POST (src\app\api\macro-analysis\route.ts:81:73)
+  32 | export async function getCache(key: string): Promise<any | null> {
+  33 |   try {
+> 34 |     const cached = await kv.get(key);
+     |                             ^
+  35 |
+  36 |     if (!cached) {
+  37 |       stats.misses++;
+[fetchHistoricalMacroDataAlphaVantage] Cache MISS - fetching from Alpha Vantage
+[fetchHistoricalMacroDataAlphaVantage] Fetching SPY from Alpha Vantage...
+[fetchVIX] Both failed: HTTP 404
+[fetchSilver] Error: HTTP 404
+[fetchSP500] Both failed: HTTP 404
+[CACHE] Set error: Error: @vercel/kv: Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN
+    at setCache (src\lib\cache\kv.ts:76:14)
+    at fetchRealMacroData (src\lib\realMacroData.ts:137:17)
+    at async POST (src\app\api\macro-analysis\route.ts:53:27)
+  74 |
+  75 |     // Set with EX (expire in seconds) for automatic cleanup
+> 76 |     await kv.set(key, JSON.stringify(entry), { ex: ttlSeconds + 60 }); // +60s buffer
+     |              ^
+  77 |   } catch (error) {
+  78 |     console.error("[CACHE] Set error:", error);
+  79 |   }
+[realMacroData] Fetch results: {
+  dxy: null,
+  vix: null,
+  yield10y: null,
+  oil: null,
+  gold: null,
+  sp500: null,
+  brentOil: null,
+  naturalGas: null,
+  silver: null,
+  copper: null,
+  usdEur: null,
+  usdJpy: null,
+  corpSpread: null,
+  inflationRate: null,
+  fedFundsRate: null,
+  unemploymentRate: null
+}
+[MACRO-ANALYSIS] Real macro data fetched: {
+  dxy: null,
+  vix: null,
+  yield10y: null,
+  oil: null,
+  gold: null,
+  sp500: null,
+  brentOil: null,
+  naturalGas: null,
+  silver: null,
+  copper: null,
+  usdEur: null,
+  usdJpy: null,
+  corpSpread: null,
+  inflationRate: null,
+  fedFundsRate: null,
+  unemploymentRate: null,
+  allSuccess: false
+}
+[MACRO-ANALYSIS] Fetching historical macro data...
+[CACHE] Get error: Error: @vercel/kv: Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN
+    at getCache (src\lib\cache\kv.ts:34:29)
+    at fetchHistoricalMacroDataAlphaVantage (src\lib\realMacroData.ts:902:32)
+    at POST (src\app\api\macro-analysis\route.ts:81:73)
+  32 | export async function getCache(key: string): Promise<any | null> {
+  33 |   try {
+> 34 |     const cached = await kv.get(key);
+     |                             ^
+  35 |
+  36 |     if (!cached) {
+  37 |       stats.misses++;
+[fetchHistoricalMacroDataAlphaVantage] Cache MISS - fetching from Alpha Vantage
+[fetchHistoricalMacroDataAlphaVantage] Fetching SPY from Alpha Vantage...
+[fetchHistoricalMacroDataAlphaVantage] No data from Alpha Vantage
+[MACRO-ANALYSIS] Alpha Vantage failed, trying Yahoo Finance...
+[CACHE] Get error: Error: @vercel/kv: Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN
+    at getCache (src\lib\cache\kv.ts:34:29)
+    at fetchHistoricalMacroDataFromYahoo (src\lib\realMacroData.ts:1309:32)
+    at POST (src\app\api\macro-analysis\route.ts:87:68)
+  32 | export async function getCache(key: string): Promise<any | null> {
+  33 |   try {
+> 34 |     const cached = await kv.get(key);
+     |                             ^
+  35 |
+  36 |     if (!cached) {
+  37 |       stats.misses++;
+[fetchHistoricalMacroDataFromYahoo] Cache MISS - fetching from Yahoo Finance
+[fetchHistoricalMacroDataFromYahoo] Fetching data from 2025-01-03 to 2025-10-30
+[fetchHistoricalMacroDataFromYahoo] Fetching ^VIX...
+[fetchHistoricalMacroDataAlphaVantage] No data from Alpha Vantage
+[MACRO-ANALYSIS] Alpha Vantage failed, trying Yahoo Finance...
+[CACHE] Get error: Error: @vercel/kv: Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN
+    at getCache (src\lib\cache\kv.ts:34:29)
+    at fetchHistoricalMacroDataFromYahoo (src\lib\realMacroData.ts:1309:32)
+    at POST (src\app\api\macro-analysis\route.ts:87:68)
+  32 | export async function getCache(key: string): Promise<any | null> {
+  33 |   try {
+> 34 |     const cached = await kv.get(key);
+     |                             ^
+  35 |
+  36 |     if (!cached) {
+  37 |       stats.misses++;
+[fetchHistoricalMacroDataFromYahoo] Cache MISS - fetching from Yahoo Finance
+[fetchHistoricalMacroDataFromYahoo] Fetching data from 2025-01-03 to 2025-10-30
+[fetchHistoricalMacroDataFromYahoo] Fetching ^VIX...
+[fetchHistoricalMacroDataFromYahoo] Failed to fetch ^VIX: HTTP 401
+[fetchHistoricalMacroDataFromYahoo] Fetching DXY=X...
+[fetchHistoricalMacroDataFromYahoo] Failed to fetch ^VIX: HTTP 401
+[fetchHistoricalMacroDataFromYahoo] Fetching DXY=X...
+[fetchHistoricalMacroDataFromYahoo] Failed to fetch DXY=X: HTTP 401
+[fetchHistoricalMacroDataFromYahoo] Fetching ^TNX...
+[fetchHistoricalMacroDataFromYahoo] Failed to fetch DXY=X: HTTP 401
+[fetchHistoricalMacroDataFromYahoo] Fetching ^TNX...
+[fetchHistoricalMacroDataFromYahoo] Failed to fetch ^TNX: HTTP 401
+[fetchHistoricalMacroDataFromYahoo] Fetching CL=F...
+[fetchHistoricalMacroDataFromYahoo] Failed to fetch ^TNX: HTTP 401
+[fetchHistoricalMacroDataFromYahoo] Fetching CL=F...
+[fetchHistoricalMacroDataFromYahoo] Failed to fetch CL=F: HTTP 401
+[fetchHistoricalMacroDataFromYahoo] Fetching GC=F...
+[fetchHistoricalMacroDataFromYahoo] Failed to fetch CL=F: HTTP 401
+[fetchHistoricalMacroDataFromYahoo] Fetching GC=F...
+[fetchHistoricalMacroDataFromYahoo] Failed to fetch GC=F: HTTP 401
+[fetchHistoricalMacroDataFromYahoo] Fetching ^GSPC...
+[fetchHistoricalMacroDataFromYahoo] Failed to fetch GC=F: HTTP 401
+[fetchHistoricalMacroDataFromYahoo] Fetching ^GSPC...
+[fetchHistoricalMacroDataFromYahoo] Failed to fetch ^GSPC: HTTP 401
+[fetchHistoricalMacroDataFromYahoo] Successfully fetched 0 indicators
+[MACRO-ANALYSIS] Yahoo Finance failed, trying FRED...
+[CACHE] Get error: Error: @vercel/kv: Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN
+    at getCache (src\lib\cache\kv.ts:34:29)
+    at fetchHistoricalMacroData (src\lib\realMacroData.ts:1116:32)
+    at POST (src\app\api\macro-analysis\route.ts:94:59)
+  32 | export async function getCache(key: string): Promise<any | null> {
+  33 |   try {
+> 34 |     const cached = await kv.get(key);
+     |                             ^
+  35 |
+  36 |     if (!cached) {
+  37 |       stats.misses++;
+[fetchHistoricalMacroData] Cache MISS - fetching from FRED
+[fetchHistoricalMacroData] Fetching data from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching DTWEXBGS from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching VIXCLS from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching DGS10 from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching DCOILWTICO from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching GOLDAMGBD228NLBM from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching SP500 from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching DCOILBRENTEU from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching DHHNGSP from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching DSLVUSD from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching PCOPPUSDM from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching DEXUSEU from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching DEXJPUS from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching BAMLC0A0CM from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching FPCPITOTLZGUSA from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching FEDFUNDS from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching UNRATE from 2025-01-03 to 2025-10-30
+[fetchHistoricalMacroDataFromYahoo] Failed to fetch ^GSPC: HTTP 401
+[fetchHistoricalMacroDataFromYahoo] Successfully fetched 0 indicators
+[MACRO-ANALYSIS] Yahoo Finance failed, trying FRED...
+[CACHE] Get error: Error: @vercel/kv: Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN
+    at getCache (src\lib\cache\kv.ts:34:29)
+    at fetchHistoricalMacroData (src\lib\realMacroData.ts:1116:32)
+    at POST (src\app\api\macro-analysis\route.ts:94:59)
+  32 | export async function getCache(key: string): Promise<any | null> {
+  33 |   try {
+> 34 |     const cached = await kv.get(key);
+     |                             ^
+  35 |
+  36 |     if (!cached) {
+  37 |       stats.misses++;
+[fetchHistoricalMacroData] Cache MISS - fetching from FRED
+[fetchHistoricalMacroData] Fetching data from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching DTWEXBGS from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching VIXCLS from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching DGS10 from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching DCOILWTICO from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching GOLDAMGBD228NLBM from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching SP500 from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching DCOILBRENTEU from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching DHHNGSP from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching DSLVUSD from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching PCOPPUSDM from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching DEXUSEU from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching DEXJPUS from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching BAMLC0A0CM from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching FPCPITOTLZGUSA from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching FEDFUNDS from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching UNRATE from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Failed to fetch DTWEXBGS: HTTP 404
+[fetchFredHistorical] Failed to fetch DEXUSEU: HTTP 404
+[fetchFredHistorical] Failed to fetch GOLDAMGBD228NLBM: HTTP 404
+[fetchFredHistorical] Failed to fetch DHHNGSP: HTTP 404
+[fetchFredHistorical] Failed to fetch VIXCLS: HTTP 404
+[fetchFredHistorical] Failed to fetch BAMLC0A0CM: HTTP 404
+[fetchFredHistorical] Failed to fetch DCOILWTICO: HTTP 404
+[fetchFredHistorical] Failed to fetch SP500: HTTP 404
+[fetchFredHistorical] Failed to fetch DEXJPUS: HTTP 404
+[fetchFredHistorical] Failed to fetch DSLVUSD: HTTP 404
+[fetchFredHistorical] Failed to fetch FEDFUNDS: HTTP 404
+[fetchFredHistorical] Failed to fetch FPCPITOTLZGUSA: HTTP 404
+[fetchFredHistorical] Failed to fetch DGS10: HTTP 404
+[fetchFredHistorical] Failed to fetch UNRATE: HTTP 404
+[fetchFredHistorical] Failed to fetch PCOPPUSDM: HTTP 404
+[fetchFredHistorical] Failed to fetch DCOILBRENTEU: HTTP 404
+[fetchHistoricalMacroData] Successfully fetched 0 indicators
+[MACRO-ANALYSIS] No real data available, using mock data for demonstration
+[MACRO-ANALYSIS] Using Mock (Demo) data with 16 indicators
+[MACRO-ANALYSIS] Fetching S&P 500 data for beta calculation...
+[fetchHistoricalSP500Data] Fetching S&P 500 from 2025-09-30 to 2025-10-29
+[fetchFredHistorical] Failed to fetch DTWEXBGS: HTTP 403
+[fetchFredHistorical] Failed to fetch VIXCLS: HTTP 403
+[fetchFredHistorical] Failed to fetch DGS10: HTTP 403
+[fetchFredHistorical] Failed to fetch DCOILWTICO: HTTP 403
+[fetchFredHistorical] Failed to fetch DSLVUSD: HTTP 403
+[fetchFredHistorical] Failed to fetch DHHNGSP: HTTP 403
+[fetchFredHistorical] Failed to fetch DCOILBRENTEU: HTTP 403
+[fetchFredHistorical] Failed to fetch DEXJPUS: HTTP 403
+[fetchFredHistorical] Failed to fetch DEXUSEU: HTTP 403
+[fetchFredHistorical] Failed to fetch GOLDAMGBD228NLBM: HTTP 403
+[fetchFredHistorical] Failed to fetch SP500: HTTP 403
+[fetchFredHistorical] Failed to fetch PCOPPUSDM: HTTP 403
+[fetchHistoricalSP500Data] Error: No time series data returned
+[MACRO-ANALYSIS] Failed to fetch real S&P 500 data, using mock data for beta calculation
+[MACRO-ANALYSIS] Found 0 correlation measurements, 30 beta points, and regime: neutral
+[CACHE] Set error: Error: @vercel/kv: Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN
+    at setCache (src\lib\cache\kv.ts:76:14)
+    at POST (src\app\api\macro-analysis\route.ts:150:19)
+  74 |
+  75 |     // Set with EX (expire in seconds) for automatic cleanup
+> 76 |     await kv.set(key, JSON.stringify(entry), { ex: ttlSeconds + 60 }); // +60s buffer
+     |              ^
+  77 |   } catch (error) {
+  78 |     console.error("[CACHE] Set error:", error);
+  79 |   }
+[MACRO-ANALYSIS] Cached analysis for AAPL for 86400s
+ POST /api/macro-analysis 200 in 3482ms
+[fetchFredHistorical] Failed to fetch BAMLC0A0CM: HTTP 403
+[fetchFredHistorical] Failed to fetch FPCPITOTLZGUSA: HTTP 403
+[fetchFredHistorical] Failed to fetch UNRATE: HTTP 403
+[fetchFredHistorical] Failed to fetch FEDFUNDS: HTTP 403
+[fetchHistoricalMacroData] Successfully fetched 0 indicators
+[MACRO-ANALYSIS] No real data available, using mock data for demonstration
+[MACRO-ANALYSIS] Using Mock (Demo) data with 16 indicators
+[MACRO-ANALYSIS] Fetching S&P 500 data for beta calculation...
+[fetchHistoricalSP500Data] Fetching S&P 500 from 2025-09-30 to 2025-10-29
+[fetchHistoricalSP500Data] Error: No time series data returned
+[MACRO-ANALYSIS] Failed to fetch real S&P 500 data, using mock data for beta calculation
+[MACRO-ANALYSIS] Found 0 correlation measurements, 30 beta points, and regime: neutral
+[CACHE] Set error: Error: @vercel/kv: Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN
+    at setCache (src\lib\cache\kv.ts:76:14)
+    at POST (src\app\api\macro-analysis\route.ts:150:19)
+  74 |
+  75 |     // Set with EX (expire in seconds) for automatic cleanup
+> 76 |     await kv.set(key, JSON.stringify(entry), { ex: ttlSeconds + 60 }); // +60s buffer
+     |              ^
+  77 |   } catch (error) {
+  78 |     console.error("[CACHE] Set error:", error);
+  79 |   }
+[MACRO-ANALYSIS] Cached analysis for AAPL for 86400s
+ POST /api/macro-analysis 200 in 3687ms
+ POST /api/explain 200 in 9209ms
+[CACHE] Get error: Error: @vercel/kv: Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN
+    at getCache (src\lib\cache\kv.ts:34:29)
+    at POST (src\app\api\macro-analysis\route.ts:36:42)
+  32 | export async function getCache(key: string): Promise<any | null> {
+  33 |   try {
+> 34 |     const cached = await kv.get(key);
+     |                             ^
+  35 |
+  36 |     if (!cached) {
+  37 |       stats.misses++;
+[MACRO-ANALYSIS] Cache MISS for AAPL
+[MACRO-ANALYSIS] Analyzing correlations for AAPL with 30 price points
+[MACRO-ANALYSIS] Fetching current macro data...
+[CACHE] Get error: Error: @vercel/kv: Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN
+    at getCache (src\lib\cache\kv.ts:34:29)
+    at fetchRealMacroData (src\lib\realMacroData.ts:74:32)
+    at POST (src\app\api\macro-analysis\route.ts:53:51)
+  32 | export async function getCache(key: string): Promise<any | null> {
+  33 |   try {
+> 34 |     const cached = await kv.get(key);
+     |                             ^
+  35 |
+  36 |     if (!cached) {
+  37 |       stats.misses++;
+[realMacroData] Cache MISS - fetching from APIs
+[CACHE] Get error: Error: @vercel/kv: Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN
+    at getCache (src\lib\cache\kv.ts:34:29)
+    at POST (src\app\api\macro-analysis\route.ts:36:42)
+  32 | export async function getCache(key: string): Promise<any | null> {
+  33 |   try {
+> 34 |     const cached = await kv.get(key);
+     |                             ^
+  35 |
+  36 |     if (!cached) {
+  37 |       stats.misses++;
+[MACRO-ANALYSIS] Cache MISS for AAPL
+[MACRO-ANALYSIS] Analyzing correlations for AAPL with 30 price points
+[MACRO-ANALYSIS] Fetching current macro data...
+[CACHE] Get error: Error: @vercel/kv: Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN
+    at getCache (src\lib\cache\kv.ts:34:29)
+    at fetchRealMacroData (src\lib\realMacroData.ts:74:32)
+    at POST (src\app\api\macro-analysis\route.ts:53:51)
+  32 | export async function getCache(key: string): Promise<any | null> {
+  33 |   try {
+> 34 |     const cached = await kv.get(key);
+     |                             ^
+  35 |
+  36 |     if (!cached) {
+  37 |       stats.misses++;
+[realMacroData] Cache MISS - fetching from APIs
+[fetchOil] Error: HTTP 403
+[fetchDXY] Error: HTTP 403
+[fetchBrentOil] Error: HTTP 403
+[fetchCopper] Error: HTTP 403
+[fetchFedFundsRate] Error: HTTP 403
+[fetchSilver] Error: HTTP 403
+[fetchCorpSpread] Error: HTTP 403
+[fetchUSDJPY] Error: HTTP 403
+[fetchUSDEUR] Error: HTTP 403
+[fetch10YYield] Error: HTTP 403
+[fetchUSDEUR] Error: HTTP 403
+[fetchInflationRate] Error: HTTP 403
+[fetchNaturalGas] Error: HTTP 403
+[fetchInflationRate] Error: HTTP 403
+[fetchCopper] Error: HTTP 403
+[fetchUSDJPY] Error: HTTP 403
+[fetchDXY] Error: HTTP 403
+[fetch10YYield] Error: HTTP 403
+[fetchGold] Error: HTTP 403
+[fetchGold] Error: HTTP 403
+[fetchUnemploymentRate] Error: HTTP 403
+[fetchCorpSpread] Error: HTTP 403
+[fetchBrentOil] Error: HTTP 403
+[fetchUnemploymentRate] Error: HTTP 403
+[fetchOil] Error: HTTP 403
+[fetchFedFundsRate] Error: HTTP 403
+[fetchNaturalGas] Error: HTTP 403
+[fetchSilver] Error: HTTP 403
+[fetchVIX] Twelve Data failed, trying FRED daily: No price data
+[fetchVIX] Both failed: HTTP 403
+[fetchSP500] Twelve Data failed, trying FRED daily: No price data
+[fetchVIX] Twelve Data failed, trying FRED daily: No price data
+[fetchSP500] Twelve Data failed, trying FRED daily: No price data
+[fetchSP500] Both failed: HTTP 403
+[fetchVIX] Both failed: HTTP 403
+[CACHE] Set error: Error: @vercel/kv: Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN
+    at setCache (src\lib\cache\kv.ts:76:14)
+    at fetchRealMacroData (src\lib\realMacroData.ts:137:17)
+    at async POST (src\app\api\macro-analysis\route.ts:53:27)
+  74 |
+  75 |     // Set with EX (expire in seconds) for automatic cleanup
+> 76 |     await kv.set(key, JSON.stringify(entry), { ex: ttlSeconds + 60 }); // +60s buffer
+     |              ^
+  77 |   } catch (error) {
+  78 |     console.error("[CACHE] Set error:", error);
+  79 |   }
+[realMacroData] Fetch results: {
+  dxy: null,
+  vix: null,
+  yield10y: null,
+  oil: null,
+  gold: null,
+  sp500: null,
+  brentOil: null,
+  naturalGas: null,
+  silver: null,
+  copper: null,
+  usdEur: null,
+  usdJpy: null,
+  corpSpread: null,
+  inflationRate: null,
+  fedFundsRate: null,
+  unemploymentRate: null
+}
+[MACRO-ANALYSIS] Real macro data fetched: {
+  dxy: null,
+  vix: null,
+  yield10y: null,
+  oil: null,
+  gold: null,
+  sp500: null,
+  brentOil: null,
+  naturalGas: null,
+  silver: null,
+  copper: null,
+  usdEur: null,
+  usdJpy: null,
+  corpSpread: null,
+  inflationRate: null,
+  fedFundsRate: null,
+  unemploymentRate: null,
+  allSuccess: false
+}
+[MACRO-ANALYSIS] Fetching historical macro data...
+[CACHE] Get error: Error: @vercel/kv: Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN
+    at getCache (src\lib\cache\kv.ts:34:29)
+    at fetchHistoricalMacroDataAlphaVantage (src\lib\realMacroData.ts:902:32)
+    at POST (src\app\api\macro-analysis\route.ts:81:73)
+  32 | export async function getCache(key: string): Promise<any | null> {
+  33 |   try {
+> 34 |     const cached = await kv.get(key);
+     |                             ^
+  35 |
+  36 |     if (!cached) {
+  37 |       stats.misses++;
+[fetchHistoricalMacroDataAlphaVantage] Cache MISS - fetching from Alpha Vantage
+[fetchHistoricalMacroDataAlphaVantage] Fetching SPY from Alpha Vantage...
+[fetchSP500] Both failed: HTTP 403
+[CACHE] Set error: Error: @vercel/kv: Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN
+    at setCache (src\lib\cache\kv.ts:76:14)
+    at fetchRealMacroData (src\lib\realMacroData.ts:137:17)
+    at async POST (src\app\api\macro-analysis\route.ts:53:27)
+  74 |
+  75 |     // Set with EX (expire in seconds) for automatic cleanup
+> 76 |     await kv.set(key, JSON.stringify(entry), { ex: ttlSeconds + 60 }); // +60s buffer
+     |              ^
+  77 |   } catch (error) {
+  78 |     console.error("[CACHE] Set error:", error);
+  79 |   }
+[realMacroData] Fetch results: {
+  dxy: null,
+  vix: null,
+  yield10y: null,
+  oil: null,
+  gold: null,
+  sp500: null,
+  brentOil: null,
+  naturalGas: null,
+  silver: null,
+  copper: null,
+  usdEur: null,
+  usdJpy: null,
+  corpSpread: null,
+  inflationRate: null,
+  fedFundsRate: null,
+  unemploymentRate: null
+}
+[MACRO-ANALYSIS] Real macro data fetched: {
+  dxy: null,
+  vix: null,
+  yield10y: null,
+  oil: null,
+  gold: null,
+  sp500: null,
+  brentOil: null,
+  naturalGas: null,
+  silver: null,
+  copper: null,
+  usdEur: null,
+  usdJpy: null,
+  corpSpread: null,
+  inflationRate: null,
+  fedFundsRate: null,
+  unemploymentRate: null,
+  allSuccess: false
+}
+[MACRO-ANALYSIS] Fetching historical macro data...
+[CACHE] Get error: Error: @vercel/kv: Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN
+    at getCache (src\lib\cache\kv.ts:34:29)
+    at fetchHistoricalMacroDataAlphaVantage (src\lib\realMacroData.ts:902:32)
+    at POST (src\app\api\macro-analysis\route.ts:81:73)
+  32 | export async function getCache(key: string): Promise<any | null> {
+  33 |   try {
+> 34 |     const cached = await kv.get(key);
+     |                             ^
+  35 |
+  36 |     if (!cached) {
+  37 |       stats.misses++;
+[fetchHistoricalMacroDataAlphaVantage] Cache MISS - fetching from Alpha Vantage
+[fetchHistoricalMacroDataAlphaVantage] Fetching SPY from Alpha Vantage...
+[fetchHistoricalMacroDataAlphaVantage] No data from Alpha Vantage
+[MACRO-ANALYSIS] Alpha Vantage failed, trying Yahoo Finance...
+[CACHE] Get error: Error: @vercel/kv: Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN
+    at getCache (src\lib\cache\kv.ts:34:29)
+    at fetchHistoricalMacroDataFromYahoo (src\lib\realMacroData.ts:1309:32)
+    at POST (src\app\api\macro-analysis\route.ts:87:68)
+  32 | export async function getCache(key: string): Promise<any | null> {
+  33 |   try {
+> 34 |     const cached = await kv.get(key);
+     |                             ^
+  35 |
+  36 |     if (!cached) {
+  37 |       stats.misses++;
+[fetchHistoricalMacroDataFromYahoo] Cache MISS - fetching from Yahoo Finance
+[fetchHistoricalMacroDataFromYahoo] Fetching data from 2025-01-03 to 2025-10-30
+[fetchHistoricalMacroDataFromYahoo] Fetching ^VIX...
+[fetchHistoricalMacroDataFromYahoo] Failed to fetch ^VIX: HTTP 401
+[fetchHistoricalMacroDataFromYahoo] Fetching DXY=X...
+[fetchHistoricalMacroDataAlphaVantage] No data from Alpha Vantage
+[MACRO-ANALYSIS] Alpha Vantage failed, trying Yahoo Finance...
+[CACHE] Get error: Error: @vercel/kv: Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN
+    at getCache (src\lib\cache\kv.ts:34:29)
+    at fetchHistoricalMacroDataFromYahoo (src\lib\realMacroData.ts:1309:32)
+    at POST (src\app\api\macro-analysis\route.ts:87:68)
+  32 | export async function getCache(key: string): Promise<any | null> {
+  33 |   try {
+> 34 |     const cached = await kv.get(key);
+     |                             ^
+  35 |
+  36 |     if (!cached) {
+  37 |       stats.misses++;
+[fetchHistoricalMacroDataFromYahoo] Cache MISS - fetching from Yahoo Finance
+[fetchHistoricalMacroDataFromYahoo] Fetching data from 2025-01-03 to 2025-10-30
+[fetchHistoricalMacroDataFromYahoo] Fetching ^VIX...
+[fetchHistoricalMacroDataFromYahoo] Failed to fetch DXY=X: HTTP 401
+[fetchHistoricalMacroDataFromYahoo] Fetching ^TNX...
+[fetchHistoricalMacroDataFromYahoo] Failed to fetch ^VIX: HTTP 401
+[fetchHistoricalMacroDataFromYahoo] Fetching DXY=X...
+[fetchHistoricalMacroDataFromYahoo] Failed to fetch ^TNX: HTTP 401
+[fetchHistoricalMacroDataFromYahoo] Fetching CL=F...
+[fetchHistoricalMacroDataFromYahoo] Failed to fetch DXY=X: HTTP 401
+[fetchHistoricalMacroDataFromYahoo] Fetching ^TNX...
+[fetchHistoricalMacroDataFromYahoo] Failed to fetch CL=F: HTTP 401
+[fetchHistoricalMacroDataFromYahoo] Fetching GC=F...
+[fetchHistoricalMacroDataFromYahoo] Failed to fetch ^TNX: HTTP 401
+[fetchHistoricalMacroDataFromYahoo] Fetching CL=F...
+[fetchHistoricalMacroDataFromYahoo] Failed to fetch GC=F: HTTP 401
+[fetchHistoricalMacroDataFromYahoo] Fetching ^GSPC...
+[fetchHistoricalMacroDataFromYahoo] Failed to fetch CL=F: HTTP 401
+[fetchHistoricalMacroDataFromYahoo] Fetching GC=F...
+[fetchHistoricalMacroDataFromYahoo] Failed to fetch ^GSPC: HTTP 401
+[fetchHistoricalMacroDataFromYahoo] Successfully fetched 0 indicators
+[MACRO-ANALYSIS] Yahoo Finance failed, trying FRED...
+[CACHE] Get error: Error: @vercel/kv: Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN
+    at getCache (src\lib\cache\kv.ts:34:29)
+    at fetchHistoricalMacroData (src\lib\realMacroData.ts:1116:32)
+    at POST (src\app\api\macro-analysis\route.ts:94:59)
+  32 | export async function getCache(key: string): Promise<any | null> {
+  33 |   try {
+> 34 |     const cached = await kv.get(key);
+     |                             ^
+  35 |
+  36 |     if (!cached) {
+  37 |       stats.misses++;
+[fetchHistoricalMacroData] Cache MISS - fetching from FRED
+[fetchHistoricalMacroData] Fetching data from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching DTWEXBGS from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching VIXCLS from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching DGS10 from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching DCOILWTICO from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching GOLDAMGBD228NLBM from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching SP500 from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching DCOILBRENTEU from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching DHHNGSP from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching DSLVUSD from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching PCOPPUSDM from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching DEXUSEU from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching DEXJPUS from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching BAMLC0A0CM from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching FPCPITOTLZGUSA from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching FEDFUNDS from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching UNRATE from 2025-01-03 to 2025-10-30
+[fetchHistoricalMacroDataFromYahoo] Failed to fetch GC=F: HTTP 401
+[fetchHistoricalMacroDataFromYahoo] Fetching ^GSPC...
+[fetchHistoricalMacroDataFromYahoo] Failed to fetch ^GSPC: HTTP 401
+[fetchHistoricalMacroDataFromYahoo] Successfully fetched 0 indicators
+[MACRO-ANALYSIS] Yahoo Finance failed, trying FRED...
+[CACHE] Get error: Error: @vercel/kv: Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN
+    at getCache (src\lib\cache\kv.ts:34:29)
+    at fetchHistoricalMacroData (src\lib\realMacroData.ts:1116:32)
+    at POST (src\app\api\macro-analysis\route.ts:94:59)
+  32 | export async function getCache(key: string): Promise<any | null> {
+  33 |   try {
+> 34 |     const cached = await kv.get(key);
+     |                             ^
+  35 |
+  36 |     if (!cached) {
+  37 |       stats.misses++;
+[fetchHistoricalMacroData] Cache MISS - fetching from FRED
+[fetchHistoricalMacroData] Fetching data from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching DTWEXBGS from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching VIXCLS from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching DGS10 from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching DCOILWTICO from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching GOLDAMGBD228NLBM from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching SP500 from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching DCOILBRENTEU from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching DHHNGSP from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching DSLVUSD from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching PCOPPUSDM from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching DEXUSEU from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching DEXJPUS from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching BAMLC0A0CM from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching FPCPITOTLZGUSA from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching FEDFUNDS from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Fetching UNRATE from 2025-01-03 to 2025-10-30
+[fetchFredHistorical] Failed to fetch DTWEXBGS: HTTP 403
+[fetchFredHistorical] Failed to fetch GOLDAMGBD228NLBM: HTTP 403
+[fetchFredHistorical] Failed to fetch VIXCLS: HTTP 403
+[fetchFredHistorical] Failed to fetch DCOILWTICO: HTTP 403
+[fetchFredHistorical] Failed to fetch DCOILBRENTEU: HTTP 403
+[fetchFredHistorical] Failed to fetch DHHNGSP: HTTP 403
+[fetchFredHistorical] Failed to fetch SP500: HTTP 403
+[fetchFredHistorical] Failed to fetch DGS10: HTTP 403
+[fetchFredHistorical] Failed to fetch FEDFUNDS: HTTP 403
+[fetchFredHistorical] Failed to fetch BAMLC0A0CM: HTTP 403
+[fetchFredHistorical] Failed to fetch DEXUSEU: HTTP 403
+[fetchFredHistorical] Failed to fetch PCOPPUSDM: HTTP 403
+[fetchFredHistorical] Failed to fetch UNRATE: HTTP 403
+[fetchFredHistorical] Failed to fetch DSLVUSD: HTTP 403
+[fetchFredHistorical] Failed to fetch DEXJPUS: HTTP 403
+[fetchFredHistorical] Failed to fetch FPCPITOTLZGUSA: HTTP 403
+[fetchHistoricalMacroData] Successfully fetched 0 indicators
+[MACRO-ANALYSIS] No real data available, using mock data for demonstration
+[MACRO-ANALYSIS] Using Mock (Demo) data with 16 indicators
+[MACRO-ANALYSIS] Fetching S&P 500 data for beta calculation...
+[fetchHistoricalSP500Data] Fetching S&P 500 from 2025-09-30 to 2025-10-29
+[fetchHistoricalSP500Data] Error: No time series data returned
+[MACRO-ANALYSIS] Failed to fetch real S&P 500 data, using mock data for beta calculation
+[MACRO-ANALYSIS] Found 0 correlation measurements, 30 beta points, and regime: neutral
+[CACHE] Set error: Error: @vercel/kv: Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN
+    at setCache (src\lib\cache\kv.ts:76:14)
+    at POST (src\app\api\macro-analysis\route.ts:150:19)
+  74 |
+  75 |     // Set with EX (expire in seconds) for automatic cleanup
+> 76 |     await kv.set(key, JSON.stringify(entry), { ex: ttlSeconds + 60 }); // +60s buffer
+     |              ^
+  77 |   } catch (error) {
+  78 |     console.error("[CACHE] Set error:", error);
+  79 |   }
+[MACRO-ANALYSIS] Cached analysis for AAPL for 86400s
+ POST /api/macro-analysis 200 in 4000ms
+[fetchFredHistorical] Failed to fetch DTWEXBGS: HTTP 403
+[fetchFredHistorical] Failed to fetch VIXCLS: HTTP 403
+[fetchFredHistorical] Failed to fetch DCOILBRENTEU: HTTP 403
+[fetchFredHistorical] Failed to fetch SP500: HTTP 403
+[fetchFredHistorical] Failed to fetch DHHNGSP: HTTP 403
+[fetchFredHistorical] Failed to fetch GOLDAMGBD228NLBM: HTTP 403
+[fetchFredHistorical] Failed to fetch DGS10: HTTP 403
+[fetchFredHistorical] Failed to fetch DCOILWTICO: HTTP 403
+[fetchFredHistorical] Failed to fetch DSLVUSD: HTTP 403
+[fetchFredHistorical] Failed to fetch PCOPPUSDM: HTTP 403
+[fetchFredHistorical] Failed to fetch DEXJPUS: HTTP 403
+[fetchFredHistorical] Failed to fetch DEXUSEU: HTTP 403
+[fetchFredHistorical] Failed to fetch BAMLC0A0CM: HTTP 403
+[fetchFredHistorical] Failed to fetch UNRATE: HTTP 403
+[fetchFredHistorical] Failed to fetch FEDFUNDS: HTTP 403
+[fetchFredHistorical] Failed to fetch FPCPITOTLZGUSA: HTTP 403
+[fetchHistoricalMacroData] Successfully fetched 0 indicators
+[MACRO-ANALYSIS] No real data available, using mock data for demonstration
+[MACRO-ANALYSIS] Using Mock (Demo) data with 16 indicators
+[MACRO-ANALYSIS] Fetching S&P 500 data for beta calculation...
+[fetchHistoricalSP500Data] Fetching S&P 500 from 2025-09-30 to 2025-10-29
+[fetchHistoricalSP500Data] Error: No time series data returned
+[MACRO-ANALYSIS] Failed to fetch real S&P 500 data, using mock data for beta calculation
+[MACRO-ANALYSIS] Found 0 correlation measurements, 30 beta points, and regime: neutral
+[CACHE] Set error: Error: @vercel/kv: Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN
+    at setCache (src\lib\cache\kv.ts:76:14)
+    at POST (src\app\api\macro-analysis\route.ts:150:19)
+  74 |
+  75 |     // Set with EX (expire in seconds) for automatic cleanup
+> 76 |     await kv.set(key, JSON.stringify(entry), { ex: ttlSeconds + 60 }); // +60s buffer
+     |              ^
+  77 |   } catch (error) {
+  78 |     console.error("[CACHE] Set error:", error);
+  79 |   }
+[MACRO-ANALYSIS] Cached analysis for AAPL for 86400s
+ POST /api/macro-analysis 200 in 4330ms
+ ○ Compiling /api/news ...
+ ✓ Compiled /api/news in 632ms
+[INSIGHTS-API] Generating insights for AAPL (refresh: 1440min)
+[CACHE] Get error: Error: @vercel/kv: Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN
+    at getCache (src\lib\cache\kv.ts:34:29)
+    at getStockNews (src\lib\newsAggregator.ts:186:32)
+    at GET (src\app\api\news\route.ts:51:40)
+  32 | export async function getCache(key: string): Promise<any | null> {
+  33 |   try {
+> 34 |     const cached = await kv.get(key);
+     |                             ^
+  35 |
+  36 |     if (!cached) {
+  37 |       stats.misses++;
+[getStockNews] Cache MISS for AAPL - generating fresh insights
+[generateAIInsights] Generating insights for AAPL
+[generateAIInsights] Error generating insights: 404 {"type":"error","error":{"type":"not_found_error","message":"model: claude-3-5-sonnet-20241022"},"request_id":"req_011CUdxUdNWnE33VM2ypfkM1"}
+[CACHE] Set error: Error: @vercel/kv: Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN
+    at setCache (src\lib\cache\kv.ts:76:14)
+    at getStockNews (src\lib\newsAggregator.ts:220:17)
+    at async GET (src\app\api\news\route.ts:51:22)
+  74 |
+  75 |     // Set with EX (expire in seconds) for automatic cleanup
+> 76 |     await kv.set(key, JSON.stringify(entry), { ex: ttlSeconds + 60 }); // +60s buffer
+     |              ^
+  77 |   } catch (error) {
+  78 |     console.error("[CACHE] Set error:", error);
+  79 |   }
+[getStockNews] Cached 0 insights for AAPL
+ GET /api/news?ticker=AAPL&refresh=1440 200 in 1385ms
