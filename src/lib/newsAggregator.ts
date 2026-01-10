@@ -32,7 +32,7 @@ async function generateAIInsights(
   const client = new Anthropic();
 
   try {
-    console.log(`[generateAIInsights] Generating insights for ${ticker}`);
+
 
     // Build context from stock data
     const dataContext = stockData
@@ -125,9 +125,7 @@ Focus on actionable observations that traders would find useful.`,
             relevanceScore,
           });
 
-          console.log(
-            `[generateAIInsights] Generated insight: ${title}`
-          );
+
         } catch (parseError) {
           console.warn(`[generateAIInsights] Failed to parse insight ${index + 1}`);
         }
@@ -151,9 +149,7 @@ Focus on actionable observations that traders would find useful.`,
       });
     }
 
-    console.log(
-      `[generateAIInsights] Generated ${insights.length} insights for ${ticker}`
-    );
+
     return insights;
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
@@ -187,13 +183,12 @@ export async function getStockNews(
   if (
     cached &&
     new Date().getTime() - new Date((cached as NewsCache).cachedAt).getTime() <
-      cacheCheckMinutes * 60 * 1000
+    cacheCheckMinutes * 60 * 1000
   ) {
-    console.log(`[getStockNews] Cache HIT for ${ticker}`);
     return (cached as NewsCache).articles.slice(0, DEFAULT_CONFIG.insightCount);
   }
 
-  console.log(`[getStockNews] Cache MISS for ${ticker} - generating fresh insights`);
+
 
   // Generate fresh insights
   let articles = await generateAIInsights(ticker, stockData);
@@ -219,7 +214,7 @@ export async function getStockNews(
 
   await setCache(cacheKey, cacheData, cacheCheckMinutes * 60);
 
-  console.log(`[getStockNews] Cached ${articles.length} insights for ${ticker}`);
+
 
   return articles;
 }
@@ -231,8 +226,6 @@ export async function clearNewsCache(ticker?: string): Promise<void> {
   if (ticker) {
     const cacheKey = getCacheKey("news", ticker);
     await getCache(cacheKey);
-    console.log(`[clearNewsCache] Cleared cache for ${ticker}`);
-  } else {
-    console.log(`[clearNewsCache] Manual clearing of all insights cache needed`);
+    // Manual clearing of all insights cache needed
   }
 }

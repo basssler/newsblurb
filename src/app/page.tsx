@@ -368,12 +368,14 @@ export default function Home() {
         }}
       />
 
-      {/* Header with Sign In */}
-      <div className="relative border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex justify-end">
-          <UserMenu />
+      {/* Header with Sign In - Only show when NOT in analysis mode */}
+      {!showAnalysis && (
+        <div className="relative border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+          <div className="max-w-4xl mx-auto px-4 py-4 flex justify-end">
+            <UserMenu />
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="relative">
         {!showAnalysis ? (
@@ -424,10 +426,10 @@ export default function Home() {
                           }
                         }}
                         className={`px-4 py-2.5 rounded-lg font-medium transition-all ${(h !== "Custom" && horizon === h)
+                          ? "bg-blue-500 text-white shadow-md"
+                          : (h === "Custom" && showCustomDatePicker)
                             ? "bg-blue-500 text-white shadow-md"
-                            : (h === "Custom" && showCustomDatePicker)
-                              ? "bg-blue-500 text-white shadow-md"
-                              : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                            : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
                           }`}
                       >
                         {h}

@@ -37,9 +37,7 @@ export function StockNews({ ticker, maxArticles = 3 }: StockNewsProps) {
         );
         setCached(data.cached);
 
-        console.log(
-          `[StockNews] Loaded ${data.articles?.length || 0} articles for ${ticker}`
-        );
+
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         console.error(`[StockNews] Error loading news: ${msg}`);

@@ -53,14 +53,12 @@ export async function getDailyTimeSeries(ticker: string) {
     url.searchParams.set("apikey", process.env.ALPHA_VANTAGE_API_KEY || "");
     url.searchParams.set("outputsize", "compact"); // Last 100 data points
 
-    console.log(`[AV] Fetching daily data for ${ticker}`);
-    console.log(`[AV] URL: ${url.toString().replace(/apikey=[^&]*/, "apikey=***")}`);
+
 
     const response = await fetch(url.toString());
     const data: AlphaVantageResponse = await response.json();
 
-    console.log(`[AV] Response status: ${response.status}`);
-    console.log(`[AV] Response keys:`, Object.keys(data));
+
 
     // Check for API errors
     if (data.Note) {
@@ -80,7 +78,7 @@ export async function getDailyTimeSeries(ticker: string) {
       throw new Error("No time series data received from Alpha Vantage");
     }
 
-    console.log(`[AV] Received ${Object.keys(timeSeries).length} data points`);
+
 
     // Convert to array and sort by date (newest first)
     const priceHistory = Object.entries(timeSeries)

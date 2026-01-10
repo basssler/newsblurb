@@ -174,7 +174,6 @@ export function enhancePriceData(
   data: PricePoint[],
   atrValue: number
 ): EnhancedPricePoint[] {
-  console.log(`[TI] Enhancing ${data.length} price points`);
   const prices = data.map((d) => d.close);
 
   const enhanced = data.map((point, index) => {
@@ -184,9 +183,7 @@ export function enhancePriceData(
     const sma50 = calculateSMA(historicalPrices, 50);
     const bbands = calculateBollingerBands(historicalPrices, 20, 2);
 
-    if (index === data.length - 1) {
-      console.log(`[TI] Last point - SMA20: ${sma20}, SMA50: ${sma50}, BB Upper: ${bbands?.upper}`);
-    }
+
 
     return {
       ...point,
@@ -198,7 +195,6 @@ export function enhancePriceData(
     };
   });
 
-  console.log(`[TI] Enhanced samples:`, enhanced.slice(-1));
   return enhanced;
 }
 

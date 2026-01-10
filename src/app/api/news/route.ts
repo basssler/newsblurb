@@ -43,9 +43,7 @@ export async function GET(request: NextRequest) {
       dividend: searchParams.get("dividend") ? parseFloat(searchParams.get("dividend")!) : undefined,
     };
 
-    console.log(
-      `[INSIGHTS-API] Generating insights for ${ticker.toUpperCase()} (refresh: ${refreshMinutes}min)`
-    );
+
 
     // Generate insights
     const articles = await getStockNews(ticker.toUpperCase(), refreshMinutes, stockData);
