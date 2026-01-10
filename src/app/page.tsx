@@ -216,10 +216,11 @@ export default function Home() {
         progressiveAnalysis.completeAnalysis();
         setLastUpdated(new Date());
         setPartialAnalysisData(null); // Clear partial data
-      } catch (err) {
+      } catch (err: any) {
         let analysisError: AnalysisError;
 
-        if (err instanceof Error && 'userMessage' in err && 'type' in err && 'retryable' in err) {
+        // Check if it's already a structured AnalysisError (it's a plain object, not instance of Error)
+        if (typeof err === 'object' && err !== null && 'userMessage' in err && 'type' in err) {
           analysisError = err as AnalysisError;
         } else if (err instanceof TypeError) {
           analysisError = createAnalysisError('NETWORK', err.message);
@@ -422,13 +423,12 @@ export default function Home() {
                             setCustomEndDate(null);
                           }
                         }}
-                        className={`px-4 py-2.5 rounded-lg font-medium transition-all ${
-                          (h !== "Custom" && horizon === h)
+                        className={`px-4 py-2.5 rounded-lg font-medium transition-all ${(h !== "Custom" && horizon === h)
                             ? "bg-blue-500 text-white shadow-md"
                             : (h === "Custom" && showCustomDatePicker)
-                            ? "bg-blue-500 text-white shadow-md"
-                            : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
-                        }`}
+                              ? "bg-blue-500 text-white shadow-md"
+                              : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                          }`}
                       >
                         {h}
                       </button>
