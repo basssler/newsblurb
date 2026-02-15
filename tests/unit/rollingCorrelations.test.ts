@@ -419,7 +419,8 @@ describe("Rolling Correlations", () => {
 
       const mockData = generateMockMacroData(stockData);
 
-      expect(mockData).toHaveLength(6); // 6 indicators
+      // generateMockMacroData currently returns 16 macro indicators (6 core + 10 additional)
+      expect(mockData).toHaveLength(16);
       expect(mockData[0]).toHaveProperty("name");
       expect(mockData[0]).toHaveProperty("values");
       expect(mockData[0].values).toHaveLength(3);
