@@ -40,7 +40,13 @@ export interface NewsPreferences {
 export interface NewsResponse {
   ticker: string;
   articles: NewsArticle[];
+  /**
+   * True if this response was served from cache (vs freshly generated).
+   * Note: serialized over JSON, so Date fields arrive as strings in the browser.
+   */
   cached: boolean;
+  /** Server-side timestamp for when the cached/generated insights were last updated. */
+  lastUpdatedAt?: Date;
   cacheExpires: Date;
   preferences: NewsPreferences;
 }

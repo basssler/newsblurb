@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import type { NewsArticle } from "@/types/news";
+import { formatLastUpdatedTimestamp } from "@/lib/formatLastUpdated";
 
 interface StockNewsProps {
   ticker: string;
@@ -13,6 +14,7 @@ export function StockNews({ ticker, maxArticles = 3 }: StockNewsProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
   const [cached, setCached] = useState(false);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     async function fetchNews() {
@@ -35,8 +37,8 @@ export function StockNews({ ticker, maxArticles = 3 }: StockNewsProps) {
         setArticles(
           (data.articles || []).slice(0, maxArticles)
         );
-        setCached(data.cached);
-
+        setCached(Boolean(data.cached));
+        setLastUpdatedAt(data.lastUpdatedAt);
 
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -76,9 +78,12 @@ export function StockNews({ ticker, maxArticles = 3 }: StockNewsProps) {
 
   if (articles.length === 0) {
     return (
-      <div className="p-6 text-center bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg">
+      <div className="p-6 text-center bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg space-y-2">
         <p className="text-slate-600 dark:text-slate-400">
           Unable to generate market insights at this time. Please try again later.
+        </p>
+        <p className="text-xs text-slate-500 dark:text-slate-500">
+          Last updated: {formatLastUpdatedTimestamp(lastUpdatedAt)}
         </p>
       </div>
     );
@@ -86,12 +91,15 @@ export function StockNews({ ticker, maxArticles = 3 }: StockNewsProps) {
 
   return (
     <div className="space-y-4">
-      {/* Cache indicator */}
-      {cached && (
-        <div className="text-xs text-slate-500 dark:text-slate-400 px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded">
-          Cached results • Updated 24h ago
-        </div>
-      )}
+      {/* Freshness indicator (server-provided) */}
+      <div className="text-xs text-slate-500 dark:text-slate-400 px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded flex items-center justify-between gap-3">
+        <span>
+          Last updated: {formatLastUpdatedTimestamp(lastUpdatedAt)}
+        </span>
+        {cached && (
+          <span className="font-medium">Cached</span>
+        )}
+      </div>
 
       {/* Article list */}
       {articles.map((article) => (

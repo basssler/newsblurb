@@ -46,14 +46,15 @@ export async function GET(request: NextRequest) {
 
 
     // Generate insights
-    const articles = await getStockNews(ticker.toUpperCase(), refreshMinutes, stockData);
+    const result = await getStockNews(ticker.toUpperCase(), refreshMinutes, stockData);
 
     // Build response
     const response: NewsResponse = {
       ticker: ticker.toUpperCase(),
-      articles,
-      cached: articles.length > 0,
-      cacheExpires: new Date(Date.now() + refreshMinutes * 60 * 1000),
+      articles: result.articles,
+      cached: result.fromCache,
+      lastUpdatedAt: result.cachedAt,
+      cacheExpires: result.expiresAt,
       preferences: {
         defaultCount: 5,
         refreshIntervalMinutes: refreshMinutes,
