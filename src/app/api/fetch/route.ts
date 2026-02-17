@@ -5,7 +5,7 @@ import {
   getGlobalQuote,
   generateMockFundamentals,
 } from "@/lib/alphaVantage";
-import { getCache, setCache, getCacheKey, CACHE_CONFIG, getRemainingTTL } from "@/lib/cache/kv";
+import { getCacheEntry, setCache, getCacheKey, CACHE_CONFIG, getRemainingTTL } from "@/lib/cache/kv";
 import { waitRandom } from "@/lib/utils";
 
 export async function POST(request: NextRequest) {
@@ -34,19 +34,20 @@ export async function POST(request: NextRequest) {
     // Check cache first (only for standard horizons, not custom date ranges)
     const isCached = horizon !== "Custom";
     let cacheKey = "";
-    let cachedData = null;
-
     if (isCached) {
       cacheKey = getCacheKey("fetch", tickerSymbol, horizon);
-      cachedData = await getCache(cacheKey);
+      const cachedEntry = await getCacheEntry(cacheKey);
 
-      if (cachedData) {
+      if (cachedEntry) {
         console.log(`[FETCH API] Cache HIT for ${tickerSymbol} (${horizon})`);
         const ttl = await getRemainingTTL(cacheKey);
         return NextResponse.json({
-          ...cachedData,
+          ...cachedEntry.data,
           _cached: true,
           _cacheTTL: ttl,
+          // Server-derived cache freshness timestamps
+          _cachedAt: cachedEntry.cachedAt,
+          _fetchedAt: null,
         });
       }
       console.log(`[FETCH API] Cache MISS for ${tickerSymbol} (${horizon})`);
@@ -173,6 +174,8 @@ export async function POST(request: NextRequest) {
       };
     }
 
+    const fetchedAt = new Date().toISOString();
+
     const data = {
       ticker: tickerSymbol,
       price: currentQuote?.price || 0,
@@ -183,6 +186,8 @@ export async function POST(request: NextRequest) {
         high: p.high,
         low: p.low,
       })),
+      // Server-derived freshness timestamp (when this response was generated)
+      _fetchedAt: fetchedAt,
     };
 
     // Cache the response (only for standard horizons)
@@ -195,6 +200,7 @@ export async function POST(request: NextRequest) {
       ...data,
       _cached: false,
       _cacheTTL: null,
+      _cachedAt: null,
     });
   } catch (error) {
     console.error("Error in /api/fetch:", error);

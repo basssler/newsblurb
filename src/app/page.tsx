@@ -134,6 +134,13 @@ export default function Home() {
           });
         }
         const fetchData = await fetchRes.json();
+
+        // Use server-derived timestamps for cache freshness (avoid client clock guesses)
+        const serverFreshness = fetchData._cachedAt || fetchData._fetchedAt;
+        if (serverFreshness) {
+          setLastUpdated(new Date(serverFreshness));
+        }
+
         progressiveAnalysis.updatePhaseProgress('fetching', 100);
         progressiveAnalysis.completePhase('fetching');
 
@@ -214,7 +221,7 @@ export default function Home() {
           aiSummary,
         });
         progressiveAnalysis.completeAnalysis();
-        setLastUpdated(new Date());
+        // lastUpdated is derived from server freshness timestamps in /api/fetch
         setPartialAnalysisData(null); // Clear partial data
       } catch (err: any) {
         let analysisError: AnalysisError;
@@ -252,7 +259,13 @@ export default function Home() {
         if (!fetchRes.ok) throw new Error("Failed to fetch data");
         const fetchData = await fetchRes.json();
 
-        const analyzeRes = await fetch("/api/analyze", {
+        // Use server-derived timestamps for cache freshness (avoid client clock guesses)
+        const serverFreshness = fetchData._cachedAt || fetchData._fetchedAt;
+        if (serverFreshness) {
+          setLastUpdated(new Date(serverFreshness));
+        }
+
+        const analyzeRes = await fetch("/api/analyze", { 
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -290,7 +303,6 @@ export default function Home() {
           priceHistory: fetchData.priceHistory,
           aiSummary,
         });
-        setLastUpdated(new Date());
 
         // Auto-save to history
         addToHistory({

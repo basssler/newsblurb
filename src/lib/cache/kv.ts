@@ -29,6 +29,25 @@ let stats = {
  * Get value from cache with TTL check
  * Returns null if expired or not found
  */
+function parseCacheEntry(raw: unknown): CacheEntry | null {
+  if (!raw) return null;
+
+  // @vercel/kv may return objects directly, but our setCache stores JSON strings.
+  if (typeof raw === "string") {
+    try {
+      return JSON.parse(raw) as CacheEntry;
+    } catch {
+      return null;
+    }
+  }
+
+  if (typeof raw === "object" && raw !== null) {
+    return raw as CacheEntry;
+  }
+
+  return null;
+}
+
 export async function getCache(key: string): Promise<any | null> {
   try {
     const cached = await kv.get(key);
@@ -38,7 +57,12 @@ export async function getCache(key: string): Promise<any | null> {
       return null;
     }
 
-    const entry = cached as CacheEntry;
+    const entry = parseCacheEntry(cached);
+    if (!entry) {
+      stats.misses++;
+      return null;
+    }
+
     const age = (Date.now() - entry.timestamp) / 1000;
 
     // Check if expired
@@ -53,6 +77,31 @@ export async function getCache(key: string): Promise<any | null> {
   } catch (error) {
     console.error("[CACHE] Get error:", error);
     stats.misses++;
+    return null;
+  }
+}
+
+export async function getCacheEntry(
+  key: string
+): Promise<{ data: any; cachedAt: string; ttlSeconds: number } | null> {
+  try {
+    const cached = await kv.get(key);
+    const entry = parseCacheEntry(cached);
+    if (!entry) return null;
+
+    const age = (Date.now() - entry.timestamp) / 1000;
+    if (age > entry.ttl) {
+      await kv.del(key);
+      return null;
+    }
+
+    return {
+      data: entry.data,
+      cachedAt: new Date(entry.timestamp).toISOString(),
+      ttlSeconds: entry.ttl,
+    };
+  } catch (error) {
+    console.error("[CACHE] Get entry error:", error);
     return null;
   }
 }
@@ -180,7 +229,9 @@ export async function getRemainingTTL(key: string): Promise<number | null> {
     const cached = await kv.get(key);
     if (!cached) return null;
 
-    const entry = cached as CacheEntry;
+    const entry = parseCacheEntry(cached);
+    if (!entry) return null;
+
     const age = (Date.now() - entry.timestamp) / 1000;
     const remaining = entry.ttl - age;
 
