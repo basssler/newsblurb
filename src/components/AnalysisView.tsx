@@ -16,6 +16,7 @@ import ShareButton from "./ShareButton";
 import { StockNews } from "./StockNews";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useAlerts } from "@/hooks/useAlerts";
+import { formatRelativeTime } from "@/lib/time";
 import { CorrelationAnalysis } from "@/lib/macro/rollingCorrelations";
 import { RollingBetaPoint } from "@/lib/macro/betaRegression";
 import { RegimeAnalysis } from "@/lib/macro/regimeDetection";
@@ -109,18 +110,7 @@ export default function AnalysisView({
     }
   }, [ticker, data?.technicals, checkAlerts]);
 
-  const formatLastUpdated = (date: Date | null) => {
-    if (!date) return "Never";
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    if (diffMins < 1) return "Just now";
-    if (diffMins < 60) return `${diffMins}m ago`;
-    const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours}h ago`;
-    const diffDays = Math.floor(diffHours / 24);
-    return `${diffDays}d ago`;
-  };
+  const formatLastUpdated = (date: Date | null) => formatRelativeTime(date);
 
   const fundamentals = data?.fundamentals || {
     pe: 0,

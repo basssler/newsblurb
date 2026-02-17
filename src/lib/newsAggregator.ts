@@ -162,6 +162,13 @@ Focus on actionable observations that traders would find useful.`,
  * Get market insights for a stock ticker (with caching)
  * Returns cached insights if fresh, otherwise generates new ones
  */
+export type StockNewsResult = {
+  articles: NewsArticle[];
+  fromCache: boolean;
+  cachedAt: Date;
+  expiresAt: Date;
+};
+
 export async function getStockNews(
   ticker: string,
   refreshMinutes?: number,
@@ -174,7 +181,7 @@ export async function getStockNews(
     pe?: number;
     dividend?: number;
   }
-): Promise<NewsArticle[]> {
+): Promise<StockNewsResult> {
   const cacheKey = getCacheKey("news", ticker);
   const cacheCheckMinutes = refreshMinutes || DEFAULT_CONFIG.refreshIntervalMinutes;
 
@@ -183,12 +190,16 @@ export async function getStockNews(
   if (
     cached &&
     new Date().getTime() - new Date((cached as NewsCache).cachedAt).getTime() <
-    cacheCheckMinutes * 60 * 1000
+      cacheCheckMinutes * 60 * 1000
   ) {
-    return (cached as NewsCache).articles.slice(0, DEFAULT_CONFIG.insightCount);
+    const c = cached as NewsCache;
+    return {
+      articles: c.articles.slice(0, DEFAULT_CONFIG.insightCount),
+      fromCache: true,
+      cachedAt: new Date(c.cachedAt),
+      expiresAt: new Date(c.expiresAt),
+    };
   }
-
-
 
   // Generate fresh insights
   let articles = await generateAIInsights(ticker, stockData);
@@ -214,9 +225,12 @@ export async function getStockNews(
 
   await setCache(cacheKey, cacheData, cacheCheckMinutes * 60);
 
-
-
-  return articles;
+  return {
+    articles,
+    fromCache: false,
+    cachedAt: new Date(cacheData.cachedAt),
+    expiresAt: new Date(cacheData.expiresAt),
+  };
 }
 
 /**
