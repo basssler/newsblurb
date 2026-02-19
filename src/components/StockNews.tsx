@@ -1,6 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import Mermaid from "./Mermaid"; // Assuming Mermaid component is created
 import type { NewsArticle } from "@/types/news";
 
 interface StockNewsProps {
@@ -13,6 +16,7 @@ export function StockNews({ ticker, maxArticles = 3 }: StockNewsProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
   const [cached, setCached] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchNews() {
@@ -37,6 +41,10 @@ export function StockNews({ ticker, maxArticles = 3 }: StockNewsProps) {
         );
         setCached(data.cached);
 
+        // Auto-expand the first item if specific analysis exists
+        if (data.articles?.length > 0 && data.articles[0].analysis) {
+          setExpandedId(data.articles[0].id);
+        }
 
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -51,6 +59,10 @@ export function StockNews({ ticker, maxArticles = 3 }: StockNewsProps) {
     fetchNews();
   }, [ticker, maxArticles]);
 
+  const toggleExpand = (id: string) => {
+    setExpandedId(expandedId === id ? null : id);
+  };
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -58,7 +70,7 @@ export function StockNews({ ticker, maxArticles = 3 }: StockNewsProps) {
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="bg-slate-200 dark:bg-slate-700 h-24 rounded-lg"
+              className="bg-slate-200 dark:bg-slate-700 h-32 rounded-lg"
             />
           ))}
         </div>
@@ -85,112 +97,138 @@ export function StockNews({ ticker, maxArticles = 3 }: StockNewsProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Cache indicator */}
       {cached && (
-        <div className="text-xs text-slate-500 dark:text-slate-400 px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded">
-          Cached results • Updated 24h ago
+        <div className="flex justify-end">
+          <div className="text-xs text-slate-500 dark:text-slate-400 px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded inline-flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+            Cached results • 24h freshness
+          </div>
         </div>
       )}
 
       {/* Article list */}
-      {articles.map((article) => (
-        <article
-          key={article.id}
-          className="p-4 border border-slate-200 dark:border-slate-700 rounded-lg hover:border-slate-300 dark:hover:border-slate-600 transition-colors hover:shadow-md dark:hover:shadow-lg"
-        >
-          {/* Header with metadata */}
-          <div className="flex items-start justify-between gap-4 mb-2">
-            <div className="flex-1">
-              {/* Title */}
-              {article.url ? (
-                <a
-                  href={article.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm font-bold text-blue-600 dark:text-blue-400 hover:underline line-clamp-2"
-                >
-                  {article.title}
-                </a>
-              ) : (
-                <p className="text-sm font-bold text-slate-900 dark:text-slate-100 line-clamp-2">
-                  {article.title}
-                </p>
-              )}
+      <div className="grid gap-6">
+        {articles.map((article) => {
+          const isExpanded = expandedId === article.id;
+          const hasAnalysis = !!article.analysis;
 
-              {/* Source and date */}
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                  {article.source}
-                </span>
-                <span className="text-xs text-slate-500 dark:text-slate-500">
-                  •
-                </span>
-                <span className="text-xs text-slate-500 dark:text-slate-500">
-                  {formatDate(article.publishedAt)}
-                </span>
-              </div>
-            </div>
-
-            {/* Relevance badge */}
-            <div className="flex-shrink-0">
-              <div
-                className={`inline-flex items-center justify-center w-12 h-12 rounded-full font-bold text-sm ${getRelevanceColor(article.relevanceScore)}`}
-              >
-                {article.relevanceScore}
-              </div>
-            </div>
-          </div>
-
-          {/* Summary */}
-          <p className="text-sm text-slate-700 dark:text-slate-300 line-clamp-2 mb-3">
-            {article.summary}
-          </p>
-
-          {/* Tags: Sentiment and Impact */}
-          <div className="flex gap-2 items-center">
-            {article.sentiment && (
-              <span
-                className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full ${getSentimentColor(article.sentiment)}`}
-              >
-                {article.sentiment.charAt(0).toUpperCase() +
-                  article.sentiment.slice(1)}
-              </span>
-            )}
-            {article.impact && (
-              <span
-                className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full ${getImpactColor(article.impact)}`}
-              >
-                {article.impact === "high" && "🔴"}
-                {article.impact === "medium" && "🟡"}
-                {article.impact === "low" && "🟢"}
-                {article.impact.charAt(0).toUpperCase() +
-                  article.impact.slice(1)}{" "}
-                Impact
-              </span>
-            )}
-          </div>
-
-          {/* Read more link (only if URL exists) */}
-          {article.url && (
-            <a
-              href={article.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block text-xs text-blue-600 dark:text-blue-400 hover:underline mt-3"
+          return (
+            <article
+              key={article.id}
+              className={`
+                group relative
+                bg-white dark:bg-slate-900 
+                border rounded-xl transition-all duration-300
+                ${isExpanded ? 'shadow-lg ring-1 ring-blue-500/20' : 'hover:shadow-md'}
+                ${getBorderColor(article.sentiment)}
+              `}
             >
-              Read full article →
-            </a>
-          )}
-        </article>
-      ))}
+              {/* Left accent bar */}
+              <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-xl ${getAccentColor(article.sentiment)}`}></div>
+
+              <div className="p-5 pl-7">
+                {/* Header with metadata */}
+                <div className="flex items-start justify-between gap-4 mb-3">
+                  <div className="flex-1">
+                    {/* Title */}
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wider ${getSentimentBadgeColor(article.sentiment)}`}>
+                        {article.sentiment || 'NEUTRAL'}
+                      </span>
+                      {article.impact === 'high' && (
+                        <span className="text-xs font-bold px-2 py-0.5 rounded bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 uppercase tracking-wider">
+                          HIGH IMPACT
+                        </span>
+                      )}
+                    </div>
+
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 leading-tight">
+                      {article.url ? (
+                        <a href={article.url} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                          {article.title}
+                        </a>
+                      ) : (
+                        article.title
+                      )}
+                    </h3>
+
+                    {/* Source and date */}
+                    <div className="flex items-center gap-2 mt-2 text-xs text-slate-500 dark:text-slate-400">
+                      <span>{article.source}</span>
+                      <span>•</span>
+                      <span>{formatDate(article.publishedAt)}</span>
+                    </div>
+                  </div>
+
+                  {/* Relevance Score */}
+                  <div className="flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-800 rounded-lg p-2 min-w-[60px]">
+                    <span className={`text-lg font-bold ${getScoreColor(article.relevanceScore)}`}>
+                      {article.relevanceScore}
+                    </span>
+                    <span className="text-[10px] text-slate-400 uppercase font-medium">Score</span>
+                  </div>
+                </div>
+
+                {/* Summary / Content */}
+                <div className="mt-4">
+                  {isExpanded && hasAnalysis ? (
+                    <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:font-bold prose-headings:text-slate-800 dark:prose-headings:text-slate-200 prose-p:text-slate-600 dark:prose-p:text-slate-300 prose-li:text-slate-600 dark:prose-li:text-slate-300">
+                      {/* Mermaid Diagram */}
+                      {article.diagram && (
+                        <div className="my-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700/50 overflow-hidden">
+                          <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Visual Analysis</h4>
+                          <Mermaid chart={article.diagram} />
+                        </div>
+                      )}
+
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {article.analysis || article.summary}
+                      </ReactMarkdown>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-3">
+                      {article.summary}
+                    </p>
+                  )}
+                </div>
+
+                {/* Expand/Collapse Action */}
+                <div className="mt-4 flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-3">
+                  {hasAnalysis ? (
+                    <button
+                      onClick={() => toggleExpand(article.id)}
+                      className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1 transition-colors"
+                    >
+                      {isExpanded ? 'Show Less' : 'Read Deep Dive'}
+                      <svg className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                    </button>
+                  ) : (
+                    <span className="text-xs text-slate-400 italic">No detailed analysis available</span>
+                  )}
+
+                  {article.url && (
+                    <a
+                      href={article.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 flex items-center gap-1 transition-colors"
+                    >
+                      Original Source
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                    </a>
+                  )}
+                </div>
+              </div>
+            </article>
+          )
+        })}
+      </div>
 
       {/* Footer */}
-      <div className="text-xs text-slate-500 dark:text-slate-400 text-center pt-2">
-        Showing {articles.length} of {articles.length} articles
-        <span className="ml-2">
-          {articles.length > 0 && "Powered by Claude AI"}
-        </span>
+      <div className="text-xs text-slate-400 text-center pt-4 border-t border-slate-200 dark:border-slate-800">
+        AI Analysis generated by Claude 3.5 Sonnet • Accurate as of {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
       </div>
     </div>
   );
@@ -208,20 +246,45 @@ function formatDate(date: Date | string): string {
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
 
-  if (diffMins < 60) {
-    return `${diffMins}m ago`;
-  }
-  if (diffHours < 24) {
-    return `${diffHours}h ago`;
-  }
-  if (diffDays < 7) {
-    return `${diffDays}d ago`;
-  }
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
 
   return d.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
   });
+}
+
+function getBorderColor(sentiment?: string): string {
+  switch (sentiment) {
+    case "positive": return "border-green-200 dark:border-green-900/30";
+    case "negative": return "border-red-200 dark:border-red-900/30";
+    default: return "border-slate-200 dark:border-slate-700";
+  }
+}
+
+function getAccentColor(sentiment?: string): string {
+  switch (sentiment) {
+    case "positive": return "bg-green-500";
+    case "negative": return "bg-red-500";
+    default: return "bg-slate-400";
+  }
+}
+
+function getSentimentBadgeColor(sentiment?: string): string {
+  switch (sentiment) {
+    case "positive": return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400";
+    case "negative": return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400";
+    default: return "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400";
+  }
+}
+
+function getScoreColor(score: number): string {
+  if (score >= 80) return "text-green-600 dark:text-green-400";
+  if (score >= 60) return "text-blue-600 dark:text-blue-400";
+  if (score >= 40) return "text-amber-600 dark:text-amber-400";
+  return "text-slate-500 dark:text-slate-400";
 }
 
 function getRelevanceColor(

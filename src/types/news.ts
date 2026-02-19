@@ -7,6 +7,8 @@ export interface NewsArticle {
   id: string; // Unique identifier (hash of URL or timestamp-based)
   title: string;
   summary: string; // Claude AI-generated summary
+  analysis?: string; // Detailed Markdown analysis
+  diagram?: string; // Mermaid diagram definition
   content?: string; // Optional full article content
   url: string;
   source: string; // News source (Bloomberg, Reuters, etc.)

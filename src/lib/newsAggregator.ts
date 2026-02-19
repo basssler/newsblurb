@@ -62,8 +62,10 @@ For each insight, provide exactly this format:
 INSIGHT [number]:
 TITLE: [2-5 word title]
 SUMMARY: [1-2 sentences, 30-50 words max]
+ANALYSIS: [Detailed analysis in Markdown format. Use H4 headers, bullet points, and bold text. NO H1/H2/H3 headers.]
 SENTIMENT: [positive/negative/neutral]
 IMPACT: [high/medium/low]
+DIAGRAM: [Optional: Valid Mermaid diagram code if relevant (e.g., graph TD, pie, sequenceDiagram). Wrap in 'mermaid' code block. If no diagram is relevant, leave blank.]
 
 Make insights diverse - cover technicals, fundamentals, sentiment, macro context, and trading opportunities.
 Be realistic but acknowledge market uncertainties.
@@ -85,22 +87,24 @@ Focus on actionable observations that traders would find useful.`,
       insightMatches.forEach((match, index) => {
         try {
           const titleMatch = match.match(/TITLE:\s*(.+?)(?=\n|SUMMARY)/);
-          const summaryMatch = match.match(
-            /SUMMARY:\s*(.+?)(?=\n|SENTIMENT)/
-          );
+          const summaryMatch = match.match(/SUMMARY:\s*(.+?)(?=\n|ANALYSIS)/);
+          const analysisMatch = match.match(/ANALYSIS:\s*([\s\S]+?)(?=\n|SENTIMENT)/);
           const sentimentMatch = match.match(
             /SENTIMENT:\s*(positive|negative|neutral)/i
           );
           const impactMatch = match.match(/IMPACT:\s*(high|medium|low)/i);
+          const diagramMatch = match.match(/DIAGRAM:\s*```mermaid\s*([\s\S]+?)```/); // Extract code within mermaid block
 
           const title = titleMatch ? titleMatch[1].trim() : `Market Insight ${index + 1}`;
           const summary = summaryMatch ? summaryMatch[1].trim() : "AI analysis of market conditions";
+          const analysis = analysisMatch ? analysisMatch[1].trim() : summary;
           const sentiment = sentimentMatch
             ? (sentimentMatch[1].toLowerCase() as "positive" | "negative" | "neutral")
             : "neutral";
           const impact = impactMatch
             ? (impactMatch[1].toLowerCase() as "high" | "medium" | "low")
             : "medium";
+          const diagram = diagramMatch ? diagramMatch[1].trim() : undefined;
 
           // Calculate relevance score
           let relevanceScore = 70; // Base score for AI insights
@@ -116,6 +120,8 @@ Focus on actionable observations that traders would find useful.`,
             id: `ai-insight-${ticker}-${index}`,
             title,
             summary,
+            analysis,
+            diagram,
             url: "", // No URL for AI-generated insights
             source: "AI-Generated Analysis",
             publishedAt: new Date(),
