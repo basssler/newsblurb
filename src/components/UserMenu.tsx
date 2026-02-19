@@ -12,7 +12,7 @@ export default function UserMenu() {
     return (
       <button
         onClick={() => signIn("github")}
-        className="px-4 py-2 rounded-lg font-medium bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+        className="px-5 py-2.5 rounded-lg font-medium bg-blue-600 hover:bg-blue-700 text-white transition-colors shadow-sm my-1"
       >
         Sign In
       </button>

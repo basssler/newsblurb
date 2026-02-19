@@ -45,6 +45,90 @@ function calculateStdDev(prices: number[], period: number): number {
 }
 
 /**
+ * Calculate RSI (Relative Strength Index)
+ * Standard 14 day period
+ */
+export function calculateRSI(prices: number[], period: number = 14): number {
+  if (prices.length < period + 1) {
+    return 50; // Return neutral RSI if not enough data
+  }
+
+  let gains = 0;
+  let losses = 0;
+
+  // Calculate initial average gain and loss
+  for (let i = 1; i <= period; i++) {
+    const change = prices[i] - prices[i - 1];
+    if (change > 0) {
+      gains += change;
+    } else {
+      losses += Math.abs(change);
+    }
+  }
+
+  let avgGain = gains / period;
+  let avgLoss = losses / period;
+
+  // Calculate subsequent averages
+  for (let i = period + 1; i < prices.length; i++) {
+    const change = prices[i] - prices[i - 1];
+    if (change > 0) {
+      avgGain = (avgGain * (period - 1) + change) / period;
+      avgLoss = (avgLoss * (period - 1)) / period;
+    } else {
+      avgGain = (avgGain * (period - 1)) / period;
+      avgLoss = (avgLoss * (period - 1) + Math.abs(change)) / period;
+    }
+  }
+
+  const rs = avgGain / avgLoss;
+  const rsi = 100 - 100 / (1 + rs);
+  return Math.round(rsi * 100) / 100;
+}
+
+/**
+ * Calculate Average True Range
+ */
+export function calculateATR(
+  priceHistory: PricePoint[],
+  period: number = 14
+): number {
+  if (priceHistory.length < 2) {
+    return 0;
+  }
+
+  const trueRanges: number[] = [];
+
+  for (let i = 1; i < priceHistory.length; i++) {
+    const currentHigh = (priceHistory[i] as any).high; // Cast as any if interface mismatch
+    const currentLow = (priceHistory[i] as any).low;
+    const previousClose = priceHistory[i - 1].close;
+
+    // True Range = max(High - Low, |High - PrevClose|, |Low - PrevClose|)
+    const tr1 = currentHigh - currentLow;
+    const tr2 = Math.abs(currentHigh - previousClose);
+    const tr3 = Math.abs(currentLow - previousClose);
+
+    const tr = Math.max(tr1, tr2, tr3);
+    trueRanges.push(tr);
+  }
+
+  if (trueRanges.length < period) {
+    return (
+      Math.round(
+        (trueRanges.reduce((a, b) => a + b, 0) / trueRanges.length) * 100
+      ) / 100
+    );
+  }
+
+  const atr =
+    Math.round(
+      (trueRanges.slice(-period).reduce((a, b) => a + b, 0) / period) * 100
+    ) / 100;
+  return atr;
+}
+
+/**
  * Calculate Bollinger Bands
  * Returns upper, middle (SMA), and lower bands
  */

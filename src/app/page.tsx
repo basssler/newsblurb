@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import AnalysisView from "@/components/AnalysisView";
 import TickerAutocomplete from "@/components/TickerAutocomplete";
 import ProgressStepper from "@/components/ProgressStepper";
 import UserMenu from "@/components/UserMenu";
+import CopilotSidebar from "@/components/CopilotSidebar";
+import TextSelectionTooltip from "@/components/TextSelectionTooltip";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import { useProgressiveAnalysis } from "@/hooks/useProgressiveAnalysis";
 import { useAnalysisHistory } from "@/hooks/useAnalysisHistory";
@@ -70,8 +72,29 @@ export default function Home() {
   const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
   const [useProgressiveLoading, setUseProgressiveLoading] = useState(true);
 
+  // Copilot sidebar state
+  const [copilotOpen, setCopilotOpen] = useState(false);
+  const [copilotDocked, setCopilotDocked] = useState(true);
+  const [pendingAction, setPendingAction] = useState<{
+    action: "explain" | "define" | "summarize";
+    text: string;
+  } | null>(null);
+  const analysisContentRef = useRef<HTMLDivElement>(null);
+
   const progressiveAnalysis = useProgressiveAnalysis();
   const { addToHistory } = useAnalysisHistory();
+
+  const handleCopilotToggle = useCallback(() => {
+    setCopilotOpen((prev) => !prev);
+  }, []);
+
+  const handleTooltipAction = useCallback(
+    (action: "explain" | "define" | "summarize", text: string) => {
+      setPendingAction({ action, text });
+      setCopilotOpen(true);
+    },
+    []
+  );
 
   const handleAnalyzeInternal = async (
     analyzeHorizon?: "Intraday" | "1-Week" | "Long-Term" | string,
@@ -358,8 +381,10 @@ export default function Home() {
     onRefresh: handleRefresh,
   });
 
+  const isSidebarShifting = showAnalysis && copilotOpen && copilotDocked;
+
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-900">
+    <div className={`min-h-screen bg-white dark:bg-slate-900 main-content-with-sidebar ${isSidebarShifting ? "main-content-with-sidebar--shifted" : ""}`}>
       {/* Subtle background pattern */}
       <div className="fixed inset-0 opacity-5 dark:opacity-10 pointer-events-none"
         style={{
@@ -371,7 +396,7 @@ export default function Home() {
       {/* Header with Sign In - Only show when NOT in analysis mode */}
       {!showAnalysis && (
         <div className="relative border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-          <div className="max-w-4xl mx-auto px-4 py-4 flex justify-end">
+          <div className="max-w-4xl mx-auto px-6 py-4 flex justify-end">
             <UserMenu />
           </div>
         </div>
@@ -380,7 +405,7 @@ export default function Home() {
       <div className="relative">
         {!showAnalysis ? (
           // Welcome/Search Screen
-          <div className="min-h-screen flex flex-col items-center justify-center px-4">
+          <div className="min-h-screen flex flex-col items-center justify-center px-6 py-8 md:py-12 pb-12">
             {/* Header */}
             <div className="text-center mb-12 max-w-2xl">
               <div className="mb-6">
@@ -521,7 +546,7 @@ export default function Home() {
           </div>
         ) : (
           // Analysis Screen
-          <div className="min-h-screen">
+          <div className="min-h-screen" ref={analysisContentRef}>
             {/* Top Navigation Bar */}
             <div className="sticky top-0 z-50 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 backdrop-blur-md bg-opacity-90 dark:bg-opacity-90">
               <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 flex items-center justify-between">
@@ -616,9 +641,29 @@ export default function Home() {
                 />
               ) : null}
             </div>
+
+            {/* Text Selection Tooltip */}
+            <TextSelectionTooltip
+              containerRef={analysisContentRef}
+              onAction={handleTooltipAction}
+            />
           </div>
         )}
       </div>
+
+      {/* Copilot Sidebar - always rendered when in analysis mode */}
+      {showAnalysis && (
+        <CopilotSidebar
+          ticker={ticker}
+          horizon={horizon}
+          analysisData={analysisData || undefined}
+          isOpen={copilotOpen}
+          onToggle={handleCopilotToggle}
+          onDockChange={setCopilotDocked}
+          pendingAction={pendingAction}
+          onActionProcessed={() => setPendingAction(null)}
+        />
+      )}
     </div>
   );
 }

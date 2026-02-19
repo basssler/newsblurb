@@ -160,6 +160,72 @@ export async function fetchRealMacroData(): Promise<RealMacroData> {
 }
 
 /**
+ * Fetch HISTORICAL macro data for the last N days
+ * Used for generating the training dataset (backtesting)
+ */
+export async function fetchMacroHistory(days: number = 100): Promise<Record<string, Partial<RealMacroData>>> {
+  console.log(`[fetchMacroHistory] Fetching last ${days} days of macro data...`);
+
+  const fredKey = process.env.FRED_API_KEY;
+  if (!fredKey) throw new Error("FRED_API_KEY not set");
+
+  // Helper to fetch series history
+  const fetchSeriesError = (name: string) => console.error(`Failed to fetch history for ${name}`);
+
+  const fetchSeries = async (seriesId: string): Promise<Record<string, number>> => {
+    try {
+      const response = await fetch(
+        `https://api.stlouisfed.org/fred/series/${seriesId}/observations?api_key=${fredKey}&limit=${days}&sort_order=desc`,
+        { signal: AbortSignal.timeout(10000) }
+      );
+      if (!response.ok) return {};
+      const data = await response.json();
+      const map: Record<string, number> = {};
+      data.observations?.forEach((obs: any) => {
+        const val = parseFloat(obs.value);
+        if (!isNaN(val)) map[obs.date] = val;
+      });
+      return map;
+    } catch (e) {
+      return {};
+    }
+  };
+
+  // Fetch key indicators in parallel
+  const [vix, yield10y, oil, sp500, inflation] = await Promise.all([
+    fetchSeries("VIXCLS"),       // VIX Daily Close
+    fetchSeries("DGS10"),        // 10Y Treasury
+    fetchSeries("DCOILWTICO"),   // WTI Oil
+    fetchSeries("SP500"),        // S&P 500 Daily
+    fetchSeries("T10YIE"),       // 10Y Breakeven Inflation (Daily proxy)
+  ]);
+
+  // Merge into a date-keyed object
+  const history: Record<string, any> = {};
+
+  // Get all unique dates
+  const allDates = new Set([
+    ...Object.keys(vix),
+    ...Object.keys(yield10y),
+    ...Object.keys(oil),
+    ...Object.keys(sp500)
+  ]);
+
+  allDates.forEach(date => {
+    history[date] = {
+      vix: { value: vix[date] ?? null },
+      yield10y: { value: yield10y[date] ?? null },
+      oil: { value: oil[date] ?? null },
+      sp500: { value: sp500[date] ?? null },
+      inflationRate: { value: inflation[date] ?? null }, // Daily inflation proxy
+      timestamp: new Date(date)
+    };
+  });
+
+  return history;
+}
+
+/**
  * Fetch DXY (US Dollar Index) from FRED
  * Source: Trade Weighted US Dollar Index (DTWEXBGS)
  * This is the official index, not approximated from EUR/USD
