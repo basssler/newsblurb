@@ -4,6 +4,7 @@ import {
   getIntradayTimeSeries,
   getGlobalQuote,
   generateMockFundamentals,
+  isAlphaVantageError,
 } from "@/lib/alphaVantage";
 import { getCache, setCache, getCacheKey, CACHE_CONFIG, getRemainingTTL } from "@/lib/cache/kv";
 import { waitRandom } from "@/lib/utils";
@@ -106,27 +107,42 @@ export async function POST(request: NextRequest) {
       console.error(`[FETCH API] Error for ${tickerSymbol}:`, errorMessage);
       console.error(`[FETCH API] Full error:`, error);
 
-      // If it's a rate limit error, return 429
-      if (errorMessage.includes("rate limit") || errorMessage.includes("ALPHA_VANTAGE_RATE_LIMIT")) {
-        console.warn(`[FETCH API] Rate limit hit`);
-        return NextResponse.json(
-          {
-            error: "Alpha Vantage API rate limit exceeded. Please try again in a moment.",
-          },
-          { status: 429 }
-        );
-      }
+      // Prefer typed Alpha Vantage errors over brittle string matching
+      if (isAlphaVantageError(error)) {
+        if (error.code === "RATE_LIMIT") {
+          console.warn(`[FETCH API] Alpha Vantage rate limit hit`);
+          return NextResponse.json(
+            { error: error.userMessage },
+            { status: 429 }
+          );
+        }
 
-      // If it's a usage limit/premium error
-      if (errorMessage.includes("ALPHA_VANTAGE_USAGE_LIMIT")) {
-        console.warn(`[FETCH API] Usage limit hit`);
-        // Return 503 Service Unavailable or 429 - letting the frontend know the specific issue
+        if (error.code === "USAGE_LIMIT") {
+          console.warn(`[FETCH API] Alpha Vantage usage limit hit`);
+          return NextResponse.json(
+            {
+              error: error.userMessage,
+              details: error.details || error.message,
+            },
+            { status: 429 }
+          );
+        }
+
+        if (error.code === "BAD_REQUEST") {
+          console.warn(`[FETCH API] Alpha Vantage bad request`);
+          return NextResponse.json(
+            { error: error.userMessage },
+            { status: 404 }
+          );
+        }
+
+        // Unknown Alpha Vantage error: surface safe message
         return NextResponse.json(
           {
-            error: "Alpha Vantage API limit reached. This endpoint may require a premium subscription or you have exhausted your daily limit.",
-            details: errorMessage
+            error: error.userMessage,
+            details: error.details || error.message,
           },
-          { status: 429 } // Treat as rate limit for retry behavior
+          { status: 503 }
         );
       }
 
